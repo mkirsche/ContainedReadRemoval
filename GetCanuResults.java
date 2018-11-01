@@ -46,10 +46,27 @@ public static void main(String[] args) throws IOException
 			}
 		}
 	}
-	System.out.println("Trial: " + dirname);
+	boolean printParams = printParams(dirname);
+	if(!printParams) System.out.println("Trial: " + dirname);
 	System.out.println("Reads: " + nReads);
 	System.out.println("ng50: " + ng50);
 	System.out.println("Contigs: " + nContigs);
 	System.out.println("Length: " + length);
+}
+static boolean printParams(String dirname)
+{
+	if(!dirname.contains("hash")) return false;
+	try {
+		String[] tokens = dirname.split("_");
+		int kmerFreq = (1<<Integer.parseInt(tokens[2].substring(1 + tokens[2].indexOf('.'))));
+		System.out.println("Kmer_sampling_frequency: 1/" + kmerFreq);
+		System.out.println("Kmer_length: " + Integer.parseInt(tokens[3]));
+		String threshold = String.format("%.2f", Double.parseDouble(tokens[4]));
+		System.out.println("Containment_indentity_threshold: " + threshold);
+		System.out.println("Seed_kmers: " + Integer.parseInt(tokens[5].substring(0, tokens[5].indexOf('.'))));
+		return true;
+	} catch (Exception e) {
+		return false;
+	}
 }
 }
