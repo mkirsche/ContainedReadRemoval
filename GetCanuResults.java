@@ -14,6 +14,7 @@ public static void main(String[] args) throws IOException
 	int ng50 = -1;
 	int nContigs = -1;
 	int length = -1;
+	int nReads = -1;
 	while(input.hasNext())
 	{
 		String line = input.nextLine().trim();
@@ -36,8 +37,17 @@ public static void main(String[] args) throws IOException
 			if(tokens.length > 2) nContigs = Integer.parseInt(tokens[2]);
 			if(tokens.length > 6) length = Integer.parseInt(tokens[6]);
 		}
+		else if(line.contains("reads."))
+		{
+			String[] tokens = line.split("\\s+");
+			if(tokens.length == 4 && tokens[1].equals("Found"))
+			{
+				nReads = Integer.parseInt(tokens[2]);
+			}
+		}
 	}
 	System.out.println("Trial: " + dirname);
+	System.out.println("Reads: " + nReads);
 	System.out.println("ng50: " + ng50);
 	System.out.println("Contigs: " + nContigs);
 	System.out.println("Length: " + length);
