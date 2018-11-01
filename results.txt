@@ -1,3 +1,9 @@
+Trial: canu_chr22.fastq/
+Reads: 74600
+ng50: 4819469
+Contigs: 128
+Length: 35853996
+
 Kmer_sampling_frequency: 1/256
 Kmer_length: 20
 Containment_indentity_threshold: 0.75
