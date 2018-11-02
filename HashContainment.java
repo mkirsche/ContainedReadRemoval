@@ -4,7 +4,7 @@ public class HashContainment {
 	static int FREQ_MINIMIZERS = 8; // Frequency will be about 1/(2^x)
 	static int K = 20;
 	static double CONTAINMENT_THRESHOLD = 0.85;
-	static int samples = 5;
+	static int samples = -3;
 public static void main(String[] args) throws IOException
 {
 	String fn = "/home/mkirsche/ccs/chr22.fastq";
@@ -83,6 +83,30 @@ public static void main(String[] args) throws IOException
 				}
 			}
 		}
+		else if(samples < 0)
+		{
+			HashMap<Integer, Integer> checkmap = new HashMap<Integer, Integer>();
+			for(int ss = 0; ss<-samples; ss++)
+			{
+				int idx = r.nextInt(sz);
+				if(!map.containsKey(rs.get(i).ms[idx])) continue;
+				for(int x : map.get(rs.get(i).ms[idx]))
+				{
+					if(checkmap.containsKey(x)) checkmap.put(x, checkmap.get(x)+1);
+					else checkmap.put(x, 1);
+				}
+			}
+			for(int x : checkmap.keySet()) if(checkmap.get(x) > 1) check.add(x);
+			for(int j : check)
+			{
+				if(i == j) continue;
+				if(rs.get(j).contains(rs.get(i)))
+				{
+					contained[i] = true;
+					break;
+				}
+			}
+		}
 		else
 		{
 			for(int j = 0; j<i; j++)
@@ -94,7 +118,7 @@ public static void main(String[] args) throws IOException
 				}
 			}
 		}
-		if(samples > 0 && !contained[i])
+		if(samples != 0 && !contained[i])
 		{
 			for(long x : rs.get(i).ms)
 			{
