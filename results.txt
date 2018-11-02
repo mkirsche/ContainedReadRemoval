@@ -5,6 +5,51 @@ Contigs: 128
 Length: 35853996
 
 Kmer_sampling_frequency: 1/256
+Kmer_length: 15
+Containment_indentity_threshold: 0.75
+Seed_kmers: 3
+Reads: 7213
+ng50: 302343
+Contigs: 141
+Length: 31442417
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 15
+Containment_indentity_threshold: 0.80
+Seed_kmers: 3
+Reads: 9362
+ng50: 1405958
+Contigs: 51
+Length: 33274471
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 15
+Containment_indentity_threshold: 0.85
+Seed_kmers: 3
+Reads: 13481
+ng50: 4077752
+Contigs: 39
+Length: 33724439
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 15
+Containment_indentity_threshold: 0.90
+Seed_kmers: 3
+Reads: 21671
+ng50: 4814593
+Contigs: 64
+Length: 34332342
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 15
+Containment_indentity_threshold: 0.95
+Seed_kmers: 3
+Reads: 38080
+ng50: 18165929
+Contigs: 81
+Length: 34900851
+
+Kmer_sampling_frequency: 1/256
 Kmer_length: 20
 Containment_indentity_threshold: 0.75
 Seed_kmers: 0
@@ -138,4 +183,94 @@ Reads: 44925
 ng50: 4821414
 Contigs: 94
 Length: 35126787
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 25
+Containment_indentity_threshold: 0.75
+Seed_kmers: 3
+Reads: 11004
+ng50: 1257442
+Contigs: 56
+Length: 33406732
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 25
+Containment_indentity_threshold: 0.80
+Seed_kmers: 3
+Reads: 15544
+ng50: 4568807
+Contigs: 42
+Length: 33745675
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 25
+Containment_indentity_threshold: 0.85
+Seed_kmers: 3
+Reads: 22648
+ng50: 18162544
+Contigs: 49
+Length: 34122813
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 25
+Containment_indentity_threshold: 0.90
+Seed_kmers: 3
+Reads: 33465
+ng50: 4821489
+Contigs: 74
+Length: 34676512
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 25
+Containment_indentity_threshold: 0.95
+Seed_kmers: 3
+Reads: 50164
+ng50: 18169612
+Contigs: 99
+Length: 35253299
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 30
+Containment_indentity_threshold: 0.75
+Seed_kmers: 3
+Reads: 13643
+ng50: 2774914
+Contigs: 47
+Length: 33634282
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 30
+Containment_indentity_threshold: 0.80
+Seed_kmers: 3
+Reads: 19051
+ng50: 5424480
+Contigs: 53
+Length: 34061388
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 30
+Containment_indentity_threshold: 0.85
+Seed_kmers: 3
+Reads: 26906
+ng50: 8640758
+Contigs: 69
+Length: 34510909
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 30
+Containment_indentity_threshold: 0.90
+Seed_kmers: 3
+Reads: 37699
+ng50: 4819236
+Contigs: 87
+Length: 34908406
+
+Kmer_sampling_frequency: 1/256
+Kmer_length: 30
+Containment_indentity_threshold: 0.95
+Seed_kmers: 3
+Reads: 54264
+ng50: 18168857
+Contigs: 101
+Length: 35307290
 
