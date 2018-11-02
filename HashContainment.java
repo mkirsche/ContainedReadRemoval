@@ -36,13 +36,17 @@ public static void main(String[] args) throws IOException
 	
 	ArrayList<Read> rs = new ArrayList<Read>();
 	int count = 0;
+	boolean fastq = !fn.endsWith("fasta") && !fn.endsWith("fa");
 	while(input.hasNext())
 	{
 		count++;
 		if(count%1000 == 0) System.err.println("Input " + count + " reads");
 		rs.add(new Read(input.nextLine(), input.nextLine()));
-		input.nextLine();
-		input.nextLine();
+		if(fastq)
+		{
+			input.nextLine();
+			input.nextLine();
+		}
 	}
 	Collections.sort(rs);
 	int n = rs.size();
