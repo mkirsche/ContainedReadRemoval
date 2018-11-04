@@ -26,6 +26,7 @@ fi
 
 javac *.java
 readlistfile=`java HashContainment $READS_FILE $FREQ_MINIMIZERS $K $THRESHOLD seed=$SAMPLES --fnOnly`
+echo 'Extracting reads from: ' $readslistfile
 java ExtractReads $readlistfile $READS_FILE
 newreadsfile=$readlistfile'.fastq'
 rm -r 'canu_'$newreadsfile
