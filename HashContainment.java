@@ -5,7 +5,8 @@ public class HashContainment {
 	static int K = 20;
 	static double CONTAINMENT_THRESHOLD = 0.85;
 	static int samples = -3;
-	static int LIMIT = 100;
+	static int LIMIT = 0;
+	static boolean fnOnly = false; // Whether or not to just output the file name and exit
 public static void main(String[] args) throws IOException
 {
 	String fn = "/home/mkirsche/ccs/chr22.fastq";
@@ -38,23 +39,43 @@ public static void main(String[] args) throws IOException
 					break;
 				}
 			}
+			for(String s : args)
+			{
+				if(s.equals("--fnOnly"))
+				{
+					fnOnly = true;
+					break;
+				}
+			}
 		}
 	}
+	String ofn = fn + ".uncontained_hash" + "." + FREQ_MINIMIZERS + "_" + K + "_" 
+			+ String.format("%.2f", CONTAINMENT_THRESHOLD) + "_" + samples;
+	if(fnOnly)
+	{
+		System.out.println(ofn);
+		return;
+	}
 	HashMap<Long, ArrayDeque<Integer>> map = new HashMap<>();
-	Scanner input = new Scanner(new FileInputStream(new File(fn)));
-	
+	//Scanner input = new Scanner(new FileInputStream(new File(fn)));
+	BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream(fn)));
 	ArrayList<Read> rs = new ArrayList<Read>();
 	int count = 0;
 	boolean fastq = !fn.endsWith("fasta") && !fn.endsWith("fa");
-	while(input.hasNext())
+	//while(input.hasNext())
+	while(true)
 	{
+		try {
 		count++;
 		if(count%1000 == 0) System.err.println("Input " + count + " reads");
-		rs.add(new Read(input.nextLine(), input.nextLine()));
+		rs.add(new Read(input.readLine(), input.readLine()));
 		if(fastq)
 		{
-			input.nextLine();
-			input.nextLine();
+			input.readLine();
+			input.readLine();
+		}
+		} catch(Exception e) {
+			break;
 		}
 	}
 	Collections.sort(rs);
@@ -139,8 +160,6 @@ public static void main(String[] args) throws IOException
 	int countContained = 0;
 	for(int i = 0; i<n; i++) if(contained[i]) countContained++;
 	System.err.println("Number contained: " + countContained);
-	String ofn = fn + ".uncontained_hash" + "." + FREQ_MINIMIZERS + "_" + K + "_" 
-			+ String.format("%.2f", CONTAINMENT_THRESHOLD) + "_" + samples;
 	System.out.println(ofn);
 	PrintWriter out = new PrintWriter(new File(ofn));
 	for(int i = 0; i<n; i++)
@@ -179,7 +198,7 @@ static long revComp(long x)
 }
 static long[] getModimizers(String s)
 {
-	TreeSet<Long> kmers = new TreeSet<Long>();
+	HashSet<Long> kmers = new HashSet<Long>();
 	int n = s.length();
 	long kmer = 0;
 	for(int i = 0; i<K; i++) kmer = (kmer << 2) | map(s.charAt(i));
@@ -204,6 +223,7 @@ static long[] getModimizers(String s)
 	long[] res = new long[kmers.size()];
 	int idx = 0;
 	for(long km : kmers) res[idx++] = km;
+	Arrays.sort(res);
 	//System.out.println(n+" "+res.length);
 	return res;
 }

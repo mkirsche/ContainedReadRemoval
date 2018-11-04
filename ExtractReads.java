@@ -18,19 +18,31 @@ public static void main(String[] args) throws IOException
 		}
 	}
 	Scanner input = new Scanner(new FileInputStream(new File(fn)));
+	boolean fastq = fn.contains("fastq") || fn.contains("fq");
 	HashSet<String> rs = new HashSet<String>();
 	while(input.hasNext()) rs.add(input.nextLine());
-	String[] buf = new String[4];
+	int linesPer = fastq ? 4 : 2;
+	String[] buf = new String[linesPer];
+	BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(readsFn)));
 	input = new Scanner(new FileInputStream(new File(readsFn)));
 	int count = 0;
 	PrintWriter out = new PrintWriter(new File(fn + ".fastq"));
-	while(input.hasNext())
+	int ii = 0;
+	long time = System.currentTimeMillis();
+	while(true)
 	{
-		for(int i = 0; i<4; i++) buf[i] = input.nextLine();
-		if(rs.contains(buf[0].substring(1)))
+		try
 		{
-			count++;
-			for(int i = 0; i<4; i++) out.println(buf[i]);
+			for(int i = 0; i<linesPer; i++) buf[i] = in.readLine();
+			if(rs.contains(buf[0].substring(1)))
+			{
+				count++;
+				for(int i = 0; i<linesPer; i++) out.println(buf[i]);
+			}
+		} 
+		catch(Exception e)
+		{
+			break;
 		}
 	}
 	out.close();
