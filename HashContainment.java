@@ -5,6 +5,7 @@ public class HashContainment {
 	static int K = 20;
 	static double CONTAINMENT_THRESHOLD = 0.85;
 	static int samples = -3;
+	static int LIMIT = 100;
 public static void main(String[] args) throws IOException
 {
 	String fn = "/home/mkirsche/ccs/chr22.fastq";
@@ -29,9 +30,17 @@ public static void main(String[] args) throws IOException
 					break;
 				}
 			}
+			for(String s : args)
+			{
+				if(s.startsWith("limit="))
+				{
+					LIMIT = Integer.parseInt(s.substring("limit=".length()));
+					break;
+				}
+			}
 		}
 	}
-	HashMap<Long, HashSet<Integer>> map = new HashMap<>();
+	HashMap<Long, ArrayDeque<Integer>> map = new HashMap<>();
 	Scanner input = new Scanner(new FileInputStream(new File(fn)));
 	
 	ArrayList<Read> rs = new ArrayList<Read>();
@@ -122,8 +131,8 @@ public static void main(String[] args) throws IOException
 		{
 			for(long x : rs.get(i).ms)
 			{
-				if(!map.containsKey(x)) map.put(x, new HashSet<Integer>());
-				map.get(x).add(i);
+				if(!map.containsKey(x)) map.put(x, new ArrayDeque<Integer>());
+				if(LIMIT == 0 || map.get(x).size() < LIMIT) map.get(x).add(i);
 			}
 		}
 	}
