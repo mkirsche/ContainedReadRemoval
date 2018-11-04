@@ -12,7 +12,7 @@ if [ "$#" -eq 5 ]; then
     FREQ_MINIMIZERS=$2
     K=$3
     THRESHOLD=$4
-    SAMPLES=$4
+    SAMPLES=$5
 fi
 
 if [ "$#" -eq 6 ]; then
@@ -20,7 +20,8 @@ if [ "$#" -eq 6 ]; then
     FREQ_MINIMIZERS=$2
     K=$3
     THRESHOLD=$4
-    LIMIT=$5
+    SAMPLES=$5
+    LIMIT=$6
 fi
 
 javac *.java
