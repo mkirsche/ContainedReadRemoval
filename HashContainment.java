@@ -14,7 +14,7 @@ public class HashContainment {
 	static boolean[] contained;
 	static ArrayList<Read> rs;
 	static ConcurrentHashMap<Long, ConcurrentLinkedDeque<Integer>> map;
-	static int NUM_THREADS = 1;
+	static int NUM_THREADS = 8;
 	static int PREPROCESS = 5000;
 	static AtomicInteger processed;
 public static void main(String[] args) throws Exception
@@ -87,24 +87,9 @@ public static void main(String[] args) throws Exception
 	map = new ConcurrentHashMap<>();
 	//Scanner input = new Scanner(new FileInputStream(new File(fn)));
 	BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream(fn)));
-	int countLines = 0;
-	while(true)
-	{
-		try {
-			String ss = input.readLine();
-			if(ss == null) break;
-			countLines ++;
-		} catch(Exception e) {
-			break;
-		}
-	}
-	input = new BufferedReader(new InputStreamReader(new FileInputStream(fn)));
 	rs = new ArrayList<Read>();
 	int count = 0;
 	boolean fastq = !fn.endsWith("fasta") && !fn.endsWith("fa");
-	countLines /= (fastq ? 4 : 2);
-	System.err.println("Reads: " + countLines);
-	contained = new boolean[countLines];
 	//while(input.hasNext())
 	ArrayList<MyThread> ts = new ArrayList<MyThread>();
 	int iter = 5000;
@@ -146,7 +131,7 @@ public static void main(String[] args) throws Exception
 		}
 	}
 	int start = lastEnd + 1;
-	int end = countLines - 1;
+	int end = rs.size() - 1;
 	if(ts.size() < NUM_THREADS)
 	{
 		ts.add(new MyThread(start, end, 0));
@@ -164,6 +149,7 @@ public static void main(String[] args) throws Exception
 	}
 	Collections.sort(rs);
 	int n = rs.size();
+	contained = new boolean[n];
 	System.err.println("Total reads: " + n);
 	for(int i = 0; i<PREPROCESS; i++) process(i);
 	int[] starts = new int[NUM_THREADS], ends = new int[NUM_THREADS];
