@@ -25,7 +25,7 @@ else
 fi
 
 javac *.java
-readlistfile=`java -Xmx=128G HashContainment $READS_FILE $FREQ_MINIMIZERS $K $THRESHOLD seed=$SAMPLES limit=$LIMIT threads=$THREADS preprocess=$PREPROCESS`
+readlistfile=`java -Xmx64G HashContainment $READS_FILE $FREQ_MINIMIZERS $K $THRESHOLD seed=$SAMPLES limit=$LIMIT threads=$THREADS preprocess=$PREPROCESS`
 echo 'Extracting reads from: ' $readlistfile
 java ExtractReads $readlistfile $READS_FILE
 newreadsfile=$readlistfile'.fastq'
