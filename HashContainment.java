@@ -1,4 +1,6 @@
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.io.*;
 public class HashContainment {
 	static int FREQ_MINIMIZERS = 8; // Frequency will be about 1/(2^x)
@@ -7,8 +9,18 @@ public class HashContainment {
 	static int samples = -3;
 	static int LIMIT = 0;
 	static boolean fnOnly = false; // Whether or not to just output the file name and exit
-public static void main(String[] args) throws IOException
+	
+	static Random r;
+	static boolean[] contained;
+	static ArrayList<Read> rs;
+	static ConcurrentHashMap<Long, ConcurrentLinkedDeque<Integer>> map;
+	static int NUM_THREADS = 8;
+	static int PREPROCESS = 5000;
+	static AtomicInteger processed;
+public static void main(String[] args) throws IOException, InterruptedException
 {
+	long startTime = System.currentTimeMillis();
+	processed = new AtomicInteger();
 	String fn = "/home/mkirsche/ccs/chr22.fastq";
 	if(args.length > 0)
 	{
@@ -47,6 +59,22 @@ public static void main(String[] args) throws IOException
 					break;
 				}
 			}
+			for(String s : args)
+			{
+				if(s.startsWith("threads="))
+				{
+					NUM_THREADS = Integer.parseInt(s.substring("threads=".length()));
+					break;
+				}
+			}
+			for(String s : args)
+			{
+				if(s.startsWith("preprocess="))
+				{
+					PREPROCESS = Integer.parseInt(s.substring("preprocess=".length()));
+					break;
+				}
+			}
 		}
 	}
 	String ofn = fn + ".uncontained_hash" + "." + FREQ_MINIMIZERS + "_" + K + "_" 
@@ -56,10 +84,10 @@ public static void main(String[] args) throws IOException
 		System.out.println(ofn);
 		return;
 	}
-	HashMap<Long, ArrayDeque<Integer>> map = new HashMap<>();
+	map = new ConcurrentHashMap<>();
 	//Scanner input = new Scanner(new FileInputStream(new File(fn)));
 	BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream(fn)));
-	ArrayList<Read> rs = new ArrayList<Read>();
+	rs = new ArrayList<Read>();
 	int count = 0;
 	boolean fastq = !fn.endsWith("fasta") && !fn.endsWith("fa");
 	//while(input.hasNext())
@@ -80,83 +108,28 @@ public static void main(String[] args) throws IOException
 	}
 	Collections.sort(rs);
 	int n = rs.size();
-	boolean[] contained = new boolean[n];
+	contained = new boolean[n];
 	System.err.println("Total reads: " + n);
-	Random r = new Random(50);
-	for(int i = 0; i<n; i++)
+	r = new Random(50);
+	for(int i = 0; i<PREPROCESS; i++) process(i);
+	int[] starts = new int[NUM_THREADS], ends = new int[NUM_THREADS];
+	starts[0] = PREPROCESS;
+	int per = Math.max(0, (n - starts[0]) / NUM_THREADS);
+	for(int i = 1; i<NUM_THREADS; i++) starts[i] = starts[i-1] + per;
+	for(int i = 0; i<NUM_THREADS; i++) ends[i] = i == (NUM_THREADS - 1) ? n-1 : (starts[i+1] - 1);
+	MyThread[] ts = new MyThread[NUM_THREADS];
+	for(int i = 0; i<NUM_THREADS; i++)
 	{
-		if(i % 1000 == 999) System.err.println("Processed " + (i+1) + " reads");
-		HashSet<Integer> check = new HashSet<Integer>();
-		
-		int sz = rs.get(i).ms.length;
-		if(sz == 0)
-		{
-			contained[i] = true;
-			continue;
-		}
-		if(samples > 0)
-		{
-			for(int ss = 0; ss<samples; ss++)
-			{
-				int idx = r.nextInt(sz);
-				if(!map.containsKey(rs.get(i).ms[idx])) continue;
-				for(int x : map.get(rs.get(i).ms[idx])) check.add(x);
-			}
-			//System.out.println(check.size());
-			for(int j : check)
-			{
-				if(i == j) continue;
-				if(rs.get(j).contains(rs.get(i)))
-				{
-					contained[i] = true;
-					break;
-				}
-			}
-		}
-		else if(samples < 0)
-		{
-			HashMap<Integer, Integer> checkmap = new HashMap<Integer, Integer>();
-			for(int ss = 0; ss<-samples; ss++)
-			{
-				int idx = r.nextInt(sz);
-				if(!map.containsKey(rs.get(i).ms[idx])) continue;
-				for(int x : map.get(rs.get(i).ms[idx]))
-				{
-					if(checkmap.containsKey(x)) checkmap.put(x, checkmap.get(x)+1);
-					else checkmap.put(x, 1);
-				}
-			}
-			for(int x : checkmap.keySet()) if(checkmap.get(x) > 1) check.add(x);
-			for(int j : check)
-			{
-				if(i == j) continue;
-				if(rs.get(j).contains(rs.get(i)))
-				{
-					contained[i] = true;
-					break;
-				}
-			}
-		}
-		else
-		{
-			for(int j = 0; j<i; j++)
-			{
-				if(rs.get(j).contains(rs.get(i)))
-				{
-					contained[i] = true;
-					break;
-				}
-			}
-		}
-		if(samples != 0 && !contained[i])
-		{
-			for(long x : rs.get(i).ms)
-			{
-				if(!map.containsKey(x)) map.put(x, new ArrayDeque<Integer>());
-				if(LIMIT == 0 || map.get(x).size() < LIMIT) map.get(x).add(i);
-			}
-		}
+		ts[i] = new MyThread(starts[i], ends[i]);
+		ts[i].start();
 	}
+	for (MyThread thread : ts) {
+	    thread.join();
+	}
+//	for(int i = 0; i<n; i++)
+//	{
+//		process(i);
+//	}
 	int countContained = 0;
 	for(int i = 0; i<n; i++) if(contained[i]) countContained++;
 	System.err.println("Number contained: " + countContained);
@@ -166,6 +139,104 @@ public static void main(String[] args) throws IOException
 		if(!contained[i])
 			out.println(rs.get(i).name);
 	out.close();
+	long endTime = System.currentTimeMillis();
+	System.err.println("Time (ms): " + (endTime - startTime));
+}
+static void process(int i)
+{
+	int done = processed.incrementAndGet();
+	if(done%1000 == 0) System.err.println("Processed " + done + " reads");
+	rs.get(i).init();
+	HashSet<Integer> check = new HashSet<Integer>();
+	
+	int sz = rs.get(i).ms.length;
+	if(sz == 0)
+	{
+		contained[i] = true;
+		return;
+	}
+	if(samples > 0)
+	{
+		for(int ss = 0; ss<samples; ss++)
+		{
+			int idx = r.nextInt(sz);
+			if(!map.containsKey(rs.get(i).ms[idx])) continue;
+			for(int x : map.get(rs.get(i).ms[idx])) check.add(x);
+		}
+		//System.out.println(check.size());
+		for(int j : check)
+		{
+			if(i == j) continue;
+			if(rs.get(j).contains(rs.get(i)))
+			{
+				contained[i] = true;
+				break;
+			}
+		}
+	}
+	else if(samples < 0)
+	{
+		HashMap<Integer, Integer> checkmap = new HashMap<Integer, Integer>();
+		for(int ss = 0; ss<-samples; ss++)
+		{
+			int idx = r.nextInt(sz);
+			if(!map.containsKey(rs.get(i).ms[idx])) continue;
+			for(int x : map.get(rs.get(i).ms[idx]))
+			{
+				if(checkmap.containsKey(x)) checkmap.put(x, checkmap.get(x)+1);
+				else checkmap.put(x, 1);
+			}
+		}
+		for(int x : checkmap.keySet()) if(checkmap.get(x) > 1) check.add(x);
+		for(int j : check)
+		{
+			if(i == j) continue;
+			if(rs.get(j).contains(rs.get(i)))
+			{
+				contained[i] = true;
+				break;
+			}
+		}
+	}
+	else
+	{
+		for(int j = 0; j<i; j++)
+		{
+			if(rs.get(j).contains(rs.get(i)))
+			{
+				contained[i] = true;
+				break;
+			}
+		}
+	}
+	if(samples != 0 && !contained[i])
+	{
+		for(long x : rs.get(i).ms)
+		{
+			if(!map.containsKey(x)) map.put(x, new ConcurrentLinkedDeque<Integer>());
+			if(LIMIT == 0 || map.get(x).size() < LIMIT) map.get(x).add(i);
+		}
+	}
+}
+static class MyThread extends Thread
+{
+	int x, y;
+	public MyThread(int i, int j)
+	{
+		x = i; y = j;
+	}
+	public void run() {
+		 try {
+
+		      for(int i = x; i<=y; i++){
+		    	  process(i);
+		      }
+
+		    } catch(Exception e) {
+
+		      System.out.println("Error: " + e.getMessage());      
+		    }
+	}
 }
 static long hash(long val, long m)
 {
@@ -232,11 +303,18 @@ static class Read implements Comparable<Read>
 	String name;
 	long[] ms;
 	int len;
+	String line;
 	Read(String l1, String l2)
 	{
 		name = l1.substring(1);
-		ms = getModimizers(l2.toUpperCase());
+		line = l2;
+		//ms = getModimizers(l2.toUpperCase());
 		len = l2.length();
+	}
+	void init()
+	{
+		ms = getModimizers(line.toUpperCase());
+		line = "";
 	}
 	boolean contains(Read r)
 	{
