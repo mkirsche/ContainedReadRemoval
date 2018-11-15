@@ -14,10 +14,10 @@ public class HashContainment {
 	static boolean[] contained;
 	static ArrayList<Read> rs;
 	static ConcurrentHashMap<Long, ConcurrentLinkedDeque<Integer>> map;
-	static int NUM_THREADS = 8;
+	static int NUM_THREADS = 1;
 	static int PREPROCESS = 5000;
 	static AtomicInteger processed;
-public static void main(String[] args) throws IOException, InterruptedException
+public static void main(String[] args) throws Exception
 {
 	long startTime = System.currentTimeMillis();
 	processed = new AtomicInteger();
@@ -87,18 +87,57 @@ public static void main(String[] args) throws IOException, InterruptedException
 	map = new ConcurrentHashMap<>();
 	//Scanner input = new Scanner(new FileInputStream(new File(fn)));
 	BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream(fn)));
+	int countLines = 0;
+	while(true)
+	{
+		try {
+			String ss = input.readLine();
+			if(ss == null) break;
+			countLines ++;
+		} catch(Exception e) {
+			break;
+		}
+	}
+	input = new BufferedReader(new InputStreamReader(new FileInputStream(fn)));
 	rs = new ArrayList<Read>();
 	int count = 0;
 	boolean fastq = !fn.endsWith("fasta") && !fn.endsWith("fa");
+	countLines /= (fastq ? 4 : 2);
+	System.err.println("Reads: " + countLines);
+	contained = new boolean[countLines];
 	//while(input.hasNext())
+	ArrayList<MyThread> ts = new ArrayList<MyThread>();
+	int iter = 5000;
+	r = new Random(50);
+	int thread = 0;
+	int lastEnd = -1;
 	while(true)
 	{
 		try {
 		count++;
-		if(count%1000 == 0) System.err.println("Input " + count + " reads");
+		if(count == PREPROCESS || count > PREPROCESS && (count - PREPROCESS)%iter == 0)
+		{
+			int start = lastEnd + 1;
+			int end = count - 1;
+			lastEnd = end;
+			if(ts.size() < NUM_THREADS)
+			{
+				ts.add(new MyThread(start, end, 0));
+				ts.get(ts.size() - 1).start();
+			}
+			else
+			{
+				int idx = thread%ts.size();
+				ts.get(idx).join();
+				ts.set(idx, new MyThread(start, end, 0));
+				ts.get(idx).start();
+			}
+			thread++;
+			System.err.println("Input " + count + " reads (threads = " + ts.size() + ")");
+		}
 		rs.add(new Read(input.readLine(), input.readLine()));
 		if(fastq)
-		{
+		{	
 			input.readLine();
 			input.readLine();
 		}
@@ -106,25 +145,39 @@ public static void main(String[] args) throws IOException, InterruptedException
 			break;
 		}
 	}
+	int start = lastEnd + 1;
+	int end = countLines - 1;
+	if(ts.size() < NUM_THREADS)
+	{
+		ts.add(new MyThread(start, end, 0));
+		ts.get(ts.size() - 1).start();
+	}
+	else
+	{
+		int idx = thread%ts.size();
+		ts.get(idx).join();
+		ts.set(idx, new MyThread(start, end, 0));
+		ts.get(idx).start();
+	}
+	for (MyThread th : ts) {
+	    th.join();
+	}
 	Collections.sort(rs);
 	int n = rs.size();
-	contained = new boolean[n];
 	System.err.println("Total reads: " + n);
-	r = new Random(50);
 	for(int i = 0; i<PREPROCESS; i++) process(i);
 	int[] starts = new int[NUM_THREADS], ends = new int[NUM_THREADS];
 	starts[0] = PREPROCESS;
 	int per = Math.max(0, (n - starts[0]) / NUM_THREADS);
 	for(int i = 1; i<NUM_THREADS; i++) starts[i] = starts[i-1] + per;
 	for(int i = 0; i<NUM_THREADS; i++) ends[i] = i == (NUM_THREADS - 1) ? n-1 : (starts[i+1] - 1);
-	MyThread[] ts = new MyThread[NUM_THREADS];
 	for(int i = 0; i<NUM_THREADS; i++)
 	{
-		ts[i] = new MyThread(starts[i], ends[i]);
-		ts[i].start();
+		ts.set(i, new MyThread(starts[i], ends[i], 1));
+		ts.get(i).start();
 	}
-	for (MyThread thread : ts) {
-	    thread.join();
+	for (MyThread th : ts) {
+	    th.join();
 	}
 //	for(int i = 0; i<n; i++)
 //	{
@@ -142,11 +195,11 @@ public static void main(String[] args) throws IOException, InterruptedException
 	long endTime = System.currentTimeMillis();
 	System.err.println("Time (ms): " + (endTime - startTime));
 }
-static void process(int i)
+static void process(int i) throws Exception
 {
 	int done = processed.incrementAndGet();
 	if(done%1000 == 0) System.err.println("Processed " + done + " reads");
-	rs.get(i).init();
+	//rs.get(i).init();
 	HashSet<Integer> check = new HashSet<Integer>();
 	
 	int sz = rs.get(i).ms.length;
@@ -220,21 +273,22 @@ static void process(int i)
 }
 static class MyThread extends Thread
 {
-	int x, y;
-	public MyThread(int i, int j)
+	int x, y, p;
+	public MyThread(int i, int j, int phase)
 	{
-		x = i; y = j;
+		x = i; y = j; p = phase;
 	}
 	public void run() {
 		 try {
 
 		      for(int i = x; i<=y; i++){
-		    	  process(i);
+		    	  if(p == 0) rs.get(i).init();
+		    	  if(p == 1) process(i);
 		      }
 
 		    } catch(Exception e) {
 
-		      System.out.println("Error: " + e.getMessage());      
+		      System.err.println("Error: " + e.getMessage());      
 		    }
 	}
 }
