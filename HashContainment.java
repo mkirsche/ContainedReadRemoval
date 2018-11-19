@@ -17,6 +17,7 @@ public class HashContainment {
 	static int NUM_THREADS = 8;
 	static int PREPROCESS = 5000;
 	static AtomicInteger processed;
+	static int MODE = 0; // 0 for mod-hash, 1 for min-hash
 public static void main(String[] args) throws Exception
 {
 	long startTime = System.currentTimeMillis();
@@ -85,12 +86,10 @@ public static void main(String[] args) throws Exception
 		return;
 	}
 	map = new ConcurrentHashMap<>();
-	//Scanner input = new Scanner(new FileInputStream(new File(fn)));
 	BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream(fn)));
 	rs = new ArrayList<Read>();
 	int count = 0;
 	boolean fastq = !fn.endsWith("fasta") && !fn.endsWith("fa");
-	//while(input.hasNext())
 	ArrayList<MyThread> ts = new ArrayList<MyThread>();
 	int iter = 5000;
 	r = new Random(50);
@@ -330,13 +329,102 @@ static long[] getModimizers(String s)
 		if(hash == 0) kmers.add(kmer);
 		if(hash2 == 0) kmers.add(kmer2);
 	}
-	//System.out.println(kmers);
 	long[] res = new long[kmers.size()];
 	int idx = 0;
 	for(long km : kmers) res[idx++] = km;
 	Arrays.sort(res);
-	//System.out.println(n+" "+res.length);
 	return res;
+}
+static long[] getMinimizers(String s)
+{
+	HashSet<Long> kmers = new HashSet<Long>();
+	int n = s.length();
+	long kmer = 0;
+	for(int i = 0; i<K; i++) kmer = (kmer << 2) | map(s.charAt(i));
+	long kmer2 = revComp(kmer);
+	long mod = (1L<<50) - 1;
+	long hash2 = hash(kmer2, mod);
+	long hash = hash(kmer, mod);
+	int window = 1 << FREQ_MINIMIZERS;
+	MinQueue mq = new MinQueue();
+	mq.add(hash, kmer);
+	mq.add(hash2,  kmer2);
+	for(int i = K; i<n; i++)
+	{
+		kmer = kmer & ((1L << (2*K - 2)) - 1);
+		kmer <<= 2;
+		kmer |= map(s.charAt(i));
+		kmer2 = revComp(kmer);
+		hash2 = hash(kmer2, FREQ_MINIMIZERS);
+		hash = hash(kmer, FREQ_MINIMIZERS);
+		mq.add(hash, kmer);
+		mq.add(hash2, kmer2);
+		if(mq.size > 2*window)
+		{
+			mq.remove();
+			mq.remove();
+			long minHash = mq.minIndex();
+			kmers.add(minHash);
+		}
+	}
+	long[] res = new long[kmers.size()];
+	int idx = 0;
+	for(long km : kmers) res[idx++] = km;
+	Arrays.sort(res);
+	return res;
+}
+/*
+ * Data structure which supports the following operations
+ * Add - append a value to the end of the queue
+ * Remove - remove the first value from the queue
+ * Min - return the smallest value in the queue
+ * Also, each value can have an index associated with it
+ */
+static class MinQueue
+{
+	int size;
+	ArrayDeque<Long> d;
+	ArrayDeque<Long> maxIndex;
+	Queue<Long> q;
+	public MinQueue()
+	{
+		d = new ArrayDeque<Long>();
+		maxIndex = new ArrayDeque<Long>();
+		q = new LinkedList<Long>();
+		size = 0;
+	}
+	long min()
+	{
+		return d.getFirst();
+	}
+	// Returns index associated with min value
+	long minIndex()
+	{
+		return maxIndex.getFirst();
+	}
+	void add(long x, long idx)
+	{
+		size++;
+		q.add(x);
+		while(!d.isEmpty() && d.getLast() > x)
+		{
+			d.removeLast();
+			maxIndex.removeLast();
+		}
+		d.add(x);
+		maxIndex.add(idx);
+	}
+	void remove()
+	{
+		if(q.isEmpty()) return;
+		size--;
+		q.poll();
+		if(!d.isEmpty() && d.getFirst() == q.peek())
+		{
+			d.poll();
+			maxIndex.poll();
+		}
+	}
 }
 static class Read implements Comparable<Read>
 {
@@ -348,13 +436,13 @@ static class Read implements Comparable<Read>
 	{
 		name = l1.substring(1);
 		line = l2;
-		//ms = getModimizers(l2.toUpperCase());
 		len = l2.length();
 	}
 	void init()
 	{
-		ms = getModimizers(line.toUpperCase());
-		line = "";
+		String uLine = line.toUpperCase();
+		ms = MODE == 0 ? getModimizers(uLine) : getMinimizers(uLine);
+		line = null;
 	}
 	boolean contains(Read r)
 	{
