@@ -42,8 +42,13 @@ public class HashContainment {
 	 * have already been processed
 	 * 
 	 * HASH_TYPE: Which hashing scheme to use - 0 is mod-hash and 1 is min-hash
+	 * 
+	 * READ_TYPE: Auto-tune parameters to a specific read type.  Options are
+	 *   ccs, pacbio, and nanopore
+	 *   
+	 * fn: The filename of the input file containing the reads to be analyzed
 	 */
-	static int FREQ_MINIMIZERS = 8; // Frequency will be about 1/(2^x)
+	static int FREQ_MINIMIZERS = 8;
 	static int K = 20;
 	static double CONTAINMENT_THRESHOLD = 0.85;
 	static int SAMPLES = -3;
@@ -51,9 +56,14 @@ public class HashContainment {
 	static int NUM_THREADS = 8;
 	static int PREPROCESS = 5000;
 	static int HASH_TYPE = 0;
+	static String READ_TYPE = "";
+	static String fn = "/home/mkirsche/ccs/chr22.fastq";
 	
 	// Set this flag to output only the name of the output file produced given the parameters
 	static boolean fnOnly = false;
+	
+	// The filename of the output file
+	static String ofn;
 	
 	static Random r;
 	
@@ -76,107 +86,20 @@ public static void main(String[] args) throws Exception
 {
 	long startTime = System.currentTimeMillis();
 	processed = new AtomicInteger();
-	String fn = "/home/mkirsche/ccs/chr22.fastq";
 	
-	// Parse command line arguments - TODO move this to its own functions
-	if(args.length > 0)
-	{
-		if(args.length == 1)
-		{
-			// Invalid number of arguments - output usage message
-			System.out.println("Usage:\n"
-					+ "java HashContainment readfilename freqminimizers k containmentthreshold");
-			System.out.println("Optional parameters:\n"
-					+ "seed= limit= --fnOnly threads= preprocess= hashtype= readtype=");
-			return;
-		}
-		else
-		{
-			fn = args[0];
-			FREQ_MINIMIZERS = Integer.parseInt(args[1]);
-			K = Integer.parseInt(args[2]);
-			CONTAINMENT_THRESHOLD = Integer.parseInt(args[3]) * 1. / 100;
-			for(String s : args)
-			{
-				if(s.startsWith("seed="))
-				{
-					SAMPLES = Integer.parseInt(s.substring("seed=".length()));
-					break;
-				}
-			}
-			for(String s : args)
-			{
-				if(s.startsWith("limit="))
-				{
-					LIMIT = Integer.parseInt(s.substring("limit=".length()));
-					break;
-				}
-			}
-			for(String s : args)
-			{
-				if(s.equals("--fnOnly"))
-				{
-					fnOnly = true;
-					break;
-				}
-			}
-			for(String s : args)
-			{
-				if(s.startsWith("threads="))
-				{
-					NUM_THREADS = Integer.parseInt(s.substring("threads=".length()));
-					break;
-				}
-			}
-			for(String s : args)
-			{
-				if(s.startsWith("preprocess="))
-				{
-					PREPROCESS = Integer.parseInt(s.substring("preprocess=".length()));
-					break;
-				}
-			}
-			for(String s : args)
-			{
-				if(s.startsWith("hashtype="))
-				{
-					HASH_TYPE = Integer.parseInt(s.substring("hashtype=".length()));
-					break;
-				}
-			}
-			// TODO - determine best parameters for each type of reads
-			for(String s : args)
-			{
-				if(s.equals("readtype=ccs"))
-				{
-					// Set parameters to best settings for CCS
-					break;
-				}
-				else if(s.equals("readtype=pacbio"))
-				{
-					// Set parameters to best settings for pacbio
-				}
-				else if(s.equals("readtype=nanopore"))
-				{
-					// Set parameters to best settings for nanopore
-				}
-			}
-		}
-	}
+	parseArgs(args);
 	
-	// Generate output file name which encodes parameters
-	// TODO add other params and move to separate function
-	String ofn = fn + ".uncontained_hash" + "." + FREQ_MINIMIZERS + "_" + K + "_" 
-			+ String.format("%.2f", CONTAINMENT_THRESHOLD) + "_" + SAMPLES;
+	generateOutputFilename();
+	
 	if(fnOnly)
 	{
 		System.out.println(ofn);
 		return;
 	}
+	
+	// Initialize data structures for holding read information
 	map = new ConcurrentHashMap<>();
-	BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream(fn)));
 	rs = new ArrayList<Read>();
-	int count = 0;
 	
 	// Check which format the reads are in - currently based on file name
 	boolean fastq = !fn.endsWith("fasta") && !fn.endsWith("fa");
@@ -188,14 +111,16 @@ public static void main(String[] args) throws Exception
 	int lastEnd = -1;
 	
 	// Scan through reads and produce a sketch for each read
+	int countInput = 0;
+	BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream(fn)));
 	while(true)
 	{
 		try {
-		count++;
-		if(count%iter == 0)
+		countInput++;
+		if(countInput%iter == 0)
 		{
 			int start = lastEnd + 1;
-			int end = count - 1;
+			int end = countInput - 1;
 			lastEnd = end;
 			if(ts.size() < NUM_THREADS)
 			{
@@ -210,7 +135,7 @@ public static void main(String[] args) throws Exception
 				ts.get(idx).start();
 			}
 			thread++;
-			System.err.println("Input " + count + " reads (threads = " + ts.size() + ")");
+			System.err.println("Input " + countInput + " reads (threads = " + ts.size() + ")");
 		}
 		rs.add(new Read(input.readLine(), input.readLine()));
 		if(fastq)
@@ -276,6 +201,88 @@ public static void main(String[] args) throws Exception
 	// Output the total runtime of the program
 	long endTime = System.currentTimeMillis();
 	System.err.println("Time (ms): " + (endTime - startTime));
+}
+static void generateOutputFilename()
+{
+	if(READ_TYPE.length() > 0) ofn = fn + ".uncontained_hash" + "." + READ_TYPE;
+	else ofn = fn + ".uncontained_hash" + "." + FREQ_MINIMIZERS + "_" 
+	+ K + "_" + String.format("%.2f", CONTAINMENT_THRESHOLD) + "_" 
+			+ SAMPLES + "_" + LIMIT + "_" + HASH_TYPE;
+}
+/*
+ * Parse command line arguments
+ */
+static void parseArgs(String[] args)
+{
+	if(args.length > 0)
+	{
+		if(args.length == 1)
+		{
+			// Invalid number of arguments - output usage message
+			System.out.println("Usage:\n"
+					+ "java HashContainment readfilename freqminimizers k containmentthreshold");
+			System.out.println("Optional parameters:\n"
+					+ "seed= limit= --fnOnly threads= preprocess= hashtype= readtype=");
+			return;
+		}
+		fn = args[0];
+		for(String s : args)
+		{
+			if(s.startsWith("readtype="))
+			{
+				READ_TYPE = s.substring("readtype=".length());
+				break;
+			}
+		}
+		// TODO - determine best parameters for each type of reads
+		if(READ_TYPE.equals("ccs"))
+		{
+			
+		}
+		else if(READ_TYPE.equals("pacbio"))
+		{
+			
+		}
+		else if(READ_TYPE.equals("nanopore"))
+		{
+			
+		}
+		else
+		{
+			FREQ_MINIMIZERS = Integer.parseInt(args[1]);
+			K = Integer.parseInt(args[2]);
+			CONTAINMENT_THRESHOLD = Integer.parseInt(args[3]) * 1. / 100;
+			for(String s : args)
+			{
+				if(s.startsWith("seed="))
+				{
+					SAMPLES = Integer.parseInt(s.substring("seed=".length()));
+					break;
+				}
+				if(s.startsWith("limit="))
+				{
+					LIMIT = Integer.parseInt(s.substring("limit=".length()));
+					break;
+				}
+				if(s.equals("--fnOnly"))
+				{
+					fnOnly = true;
+				}
+				if(s.startsWith("threads="))
+				{
+					NUM_THREADS = Integer.parseInt(s.substring("threads=".length()));
+				}
+				if(s.startsWith("preprocess="))
+				{
+					PREPROCESS = Integer.parseInt(s.substring("preprocess=".length()));
+				}
+				if(s.startsWith("hashtype="))
+				{
+					HASH_TYPE = Integer.parseInt(s.substring("hashtype=".length()));
+				}
+			}
+		}
+	}
 }
 static void process(int i) throws Exception
 {
