@@ -1,33 +1,93 @@
+/*
+ * Using hashing to determine which reads in a dataset are contained within
+ * other reads and remove those reads
+ */
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.io.*;
 public class HashContainment {
+	/*
+	 * Parameters:
+	 * 
+	 * FREQ_MINIMIZERS: The sampling frequency when creating a sketch of each read.
+	 *   If this value is x, approximately 1 in 2^x kmers will be stored for mod hashing,
+	 *   and the window size will be 2^x for min hashing.
+	 *   
+	 * K: The number of base pairs in each kmer
+	 * 
+	 * CONTAINMENT_THRESHOLD: A modified Jacard distance similarity metric is used to determine
+	 *   if a read r is contained in another read r': If S is the sketch of r, and S' is the
+	 *   sketch of r', then similarity(r in r') = |S intersect S'| / |S|, and r is considered
+	 *   contained in r' if similarity(r in r') is at least this threshold  
+	 *   
+	 * SAMPLES: Checking all pairs of reads is often too slow.  In order to avoid this,
+	 *   given a read r, in order to find a read that contains r, |SAMPLES| kmers are sampled
+	 *   from the sketch of r, and the remaining reads are filtered according to a scheme which
+	 *   depends on the value of SAMPLES
+	 *     SAMPLES > 0: Only reads which contain at least one kmer in the sample
+	 *     SAMPLES < 0: Only reads which contain at least two kmers in the sample
+	 *     SAMPLES = 0: No filter
+	 * 
+	 * LIMIT: In the sampling schemes above, further filter the results by keeping only a set
+	 *   of at most LIMIT reads for each kmer, and rather than just containing a kmer, reads
+	 *   must be in that kmer's set
+	 *   
+	 * NUM_THREADS: The maximum number of threads to execute at any given time
+	 * 
+	 * PREPROCESS:  When running on multiple threads, there is no guarantee that a containing
+	 * read has been processed because processing on multiple threads causes the reads to be
+	 * considered out of order.  This parameter specifies a number of reads to process before
+	 * the program forks into multiple threads to guarantee that at least the longest reads will
+	 * have already been processed
+	 * 
+	 * HASH_TYPE: Which hashing scheme to use - 0 is mod-hash and 1 is min-hash
+	 */
 	static int FREQ_MINIMIZERS = 8; // Frequency will be about 1/(2^x)
 	static int K = 20;
 	static double CONTAINMENT_THRESHOLD = 0.85;
-	static int samples = -3;
+	static int SAMPLES = -3;
 	static int LIMIT = 0;
-	static boolean fnOnly = false; // Whether or not to just output the file name and exit
-	
-	static Random r;
-	static boolean[] contained;
-	static ArrayList<Read> rs;
-	static ConcurrentHashMap<Long, ConcurrentLinkedDeque<Integer>> map;
 	static int NUM_THREADS = 8;
 	static int PREPROCESS = 5000;
+	static int HASH_TYPE = 0;
+	
+	// Set this flag to output only the name of the output file produced given the parameters
+	static boolean fnOnly = false;
+	
+	static Random r;
+	
+	// A list of all reads
+	static ArrayList<Read> rs;
+	
+	// Whether or not each read is contained in some other read
+	static boolean[] contained;
+	
+	//Keeps a set of reads containing each kmer
+	static ConcurrentHashMap<Long, ConcurrentLinkedDeque<Integer>> map;
+	
+	// A counter keeping track of how many reads have been processed so far
 	static AtomicInteger processed;
-	static int MODE = 0; // 0 for mod-hash, 1 for min-hash
+	
+	// The number of reads to assign each thread at a time
+	static 	int iter = 5000;
+	
 public static void main(String[] args) throws Exception
 {
 	long startTime = System.currentTimeMillis();
 	processed = new AtomicInteger();
 	String fn = "/home/mkirsche/ccs/chr22.fastq";
+	
+	// Parse command line arguments - TODO move this to its own functions
 	if(args.length > 0)
 	{
 		if(args.length == 1)
 		{
-			System.out.println("readfilename freqminimizers k containmentthreshold seed=");
+			// Invalid number of arguments - output usage message
+			System.out.println("Usage:\n"
+					+ "java HashContainment readfilename freqminimizers k containmentthreshold");
+			System.out.println("Optional parameters:\n"
+					+ "seed= limit= --fnOnly threads= preprocess= hashtype= readtype=");
 			return;
 		}
 		else
@@ -40,7 +100,7 @@ public static void main(String[] args) throws Exception
 			{
 				if(s.startsWith("seed="))
 				{
-					samples = Integer.parseInt(s.substring("seed=".length()));
+					SAMPLES = Integer.parseInt(s.substring("seed=".length()));
 					break;
 				}
 			}
@@ -78,16 +138,36 @@ public static void main(String[] args) throws Exception
 			}
 			for(String s : args)
 			{
-				if(s.startsWith("mode="))
+				if(s.startsWith("hashtype="))
 				{
-					PREPROCESS = Integer.parseInt(s.substring("mode=".length()));
+					HASH_TYPE = Integer.parseInt(s.substring("hashtype=".length()));
 					break;
+				}
+			}
+			// TODO - determine best parameters for each type of reads
+			for(String s : args)
+			{
+				if(s.equals("readtype=ccs"))
+				{
+					// Set parameters to best settings for CCS
+					break;
+				}
+				else if(s.equals("readtype=pacbio"))
+				{
+					// Set parameters to best settings for pacbio
+				}
+				else if(s.equals("readtype=nanopore"))
+				{
+					// Set parameters to best settings for nanopore
 				}
 			}
 		}
 	}
+	
+	// Generate output file name which encodes parameters
+	// TODO add other params and move to separate function
 	String ofn = fn + ".uncontained_hash" + "." + FREQ_MINIMIZERS + "_" + K + "_" 
-			+ String.format("%.2f", CONTAINMENT_THRESHOLD) + "_" + samples;
+			+ String.format("%.2f", CONTAINMENT_THRESHOLD) + "_" + SAMPLES;
 	if(fnOnly)
 	{
 		System.out.println(ofn);
@@ -97,17 +177,22 @@ public static void main(String[] args) throws Exception
 	BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream(fn)));
 	rs = new ArrayList<Read>();
 	int count = 0;
+	
+	// Check which format the reads are in - currently based on file name
 	boolean fastq = !fn.endsWith("fasta") && !fn.endsWith("fa");
+	
+	// Initialize threads and random number generator
 	ArrayList<MyThread> ts = new ArrayList<MyThread>();
-	int iter = 5000;
 	r = new Random(50);
 	int thread = 0;
 	int lastEnd = -1;
+	
+	// Scan through reads and produce a sketch for each read
 	while(true)
 	{
 		try {
 		count++;
-		if(count == PREPROCESS || count > PREPROCESS && (count - PREPROCESS)%iter == 0)
+		if(count%iter == 0)
 		{
 			int start = lastEnd + 1;
 			int end = count - 1;
@@ -169,22 +254,26 @@ public static void main(String[] args) throws Exception
 		ts.set(i, new MyThread(starts[i], ends[i], 1));
 		ts.get(i).start();
 	}
+	
+	// Wait for all threads to finish before finalizing results
 	for (MyThread th : ts) {
 	    th.join();
 	}
-//	for(int i = 0; i<n; i++)
-//	{
-//		process(i);
-//	}
+	
+	// Count how many reads were contained
 	int countContained = 0;
 	for(int i = 0; i<n; i++) if(contained[i]) countContained++;
 	System.err.println("Number contained: " + countContained);
 	System.out.println(ofn);
+	
+	// Output non-contained readnames to a file
 	PrintWriter out = new PrintWriter(new File(ofn));
 	for(int i = 0; i<n; i++)
 		if(!contained[i])
 			out.println(rs.get(i).name);
 	out.close();
+	
+	// Output the total runtime of the program
 	long endTime = System.currentTimeMillis();
 	System.err.println("Time (ms): " + (endTime - startTime));
 }
@@ -201,9 +290,9 @@ static void process(int i) throws Exception
 		contained[i] = true;
 		return;
 	}
-	if(samples > 0)
+	if(SAMPLES > 0)
 	{
-		for(int ss = 0; ss<samples; ss++)
+		for(int ss = 0; ss<SAMPLES; ss++)
 		{
 			int idx = r.nextInt(sz);
 			if(!map.containsKey(rs.get(i).ms[idx])) continue;
@@ -220,10 +309,10 @@ static void process(int i) throws Exception
 			}
 		}
 	}
-	else if(samples < 0)
+	else if(SAMPLES < 0)
 	{
 		HashMap<Integer, Integer> checkmap = new HashMap<Integer, Integer>();
-		for(int ss = 0; ss<-samples; ss++)
+		for(int ss = 0; ss<-SAMPLES; ss++)
 		{
 			int idx = r.nextInt(sz);
 			if(!map.containsKey(rs.get(i).ms[idx])) continue;
@@ -255,7 +344,7 @@ static void process(int i) throws Exception
 			}
 		}
 	}
-	if(samples != 0 && !contained[i])
+	if(SAMPLES != 0 && !contained[i])
 	{
 		for(long x : rs.get(i).ms)
 		{
@@ -448,8 +537,8 @@ static class Read implements Comparable<Read>
 	}
 	void init()
 	{
-		String uLine = line.toUpperCase();
-		ms = MODE == 0 ? getModimizers(uLine) : getMinimizers(uLine);
+		line = line.toUpperCase();
+		ms = HASH_TYPE == 0 ? getModimizers(line) : getMinimizers(line);
 		line = null;
 	}
 	boolean contains(Read r)
