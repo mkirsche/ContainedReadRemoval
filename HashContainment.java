@@ -76,6 +76,14 @@ public static void main(String[] args) throws Exception
 					break;
 				}
 			}
+			for(String s : args)
+			{
+				if(s.startsWith("mode="))
+				{
+					PREPROCESS = Integer.parseInt(s.substring("mode=".length()));
+					break;
+				}
+			}
 		}
 	}
 	String ofn = fn + ".uncontained_hash" + "." + FREQ_MINIMIZERS + "_" + K + "_" 
