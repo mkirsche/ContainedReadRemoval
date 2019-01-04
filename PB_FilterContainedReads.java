@@ -83,6 +83,9 @@ public static void main(String[] args) throws Exception
 	
 	// Initialize filenames
 	fn = "ERR2173373.fastq";
+	
+	parseArgs(args);
+	
 	generateOutputFilename();
 	
 	// Initialize input reader and global variables
@@ -211,6 +214,54 @@ public static void main(String[] args) throws Exception
 	
 	long endTime = System.currentTimeMillis();
 	System.out.println("Time (ms): " + (endTime - startTime));
+}
+/*
+ * Parse command line arguments
+ */
+static void parseArgs(String[] args)
+{
+	if(args.length == 0) return;
+	if(args[1].equals("help"))
+	{
+		System.out.println("Usage:\n");
+		System.out.println("  java PB_FilterContainedReads <readfile>");
+		System.out.println("\n\n");
+		System.out.println("Optional arguments:");
+		System.out.println("  nt=[num_threads (int)]");
+		System.out.println("  k1=[k1 (int)]");
+		System.out.println("  w1=[w1 (int)]");
+		System.out.println("  k2=[k2 (int)]");
+		System.out.println("  w2=[w2 (int)]");
+		System.out.println("  ct=[containment_threshold (float)]");
+	}
+	fn = args[0];
+	for(int i = 1; i<args.length; i++)
+	{
+		if(args[i].startsWith("nt="))
+		{
+			NUM_THREADS = Integer.parseInt(args[i].substring(1 + args[i].indexOf('=')));
+		}
+		else if(args[i].startsWith("k1="))
+		{
+			K1 = Integer.parseInt(args[i].substring(1 + args[i].indexOf('=')));
+		}
+		else if(args[i].startsWith("w1="))
+		{
+			W1 = Integer.parseInt(args[i].substring(1 + args[i].indexOf('=')));
+		}
+		else if(args[i].startsWith("k2="))
+		{
+			K2 = Integer.parseInt(args[i].substring(1 + args[i].indexOf('=')));
+		}
+		else if(args[i].startsWith("w2="))
+		{
+			W2 = Integer.parseInt(args[i].substring(1 + args[i].indexOf('=')));
+		}
+		else if(args[i].startsWith("ct="))
+		{
+			CONTAINMENT_THRESHOLD = Double.parseDouble(args[i].substring(1 + args[i].indexOf('=')));
+		}
+	}
 }
 /*
  * Process read with index i and check if it is contained
