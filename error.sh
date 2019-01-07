@@ -33,3 +33,9 @@ $WTDIR/wtpoa-cns -t 16 -i $WTDIR'/'$NEW_READS_FILE'.ctg.lay' -fo $WTDIR'/'$NEW_R
 
 java -cp "${BINDIR}" AssemblyStats $WTDIR'/'$NEW_READS_FILE'.ctg.lay.fa'
 
+numlines=`wc -l $NEW_READS_FILE`
+echo 'Number of lines in new read file: '$numlines
+
+echo 'Params: w1='$W1', w2='$W2', k1='$K1', k2='$K2', ct='$CT
+
+
