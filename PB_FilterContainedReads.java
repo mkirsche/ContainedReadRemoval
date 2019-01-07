@@ -75,6 +75,11 @@ public class PB_FilterContainedReads {
 	 */
 	static boolean[] contained;
 	
+	/*
+	 * If true, only output the output filename and exit
+	 */
+	static boolean fnOnly = false;
+	
 @SuppressWarnings("resource")
 public static void main(String[] args) throws Exception
 {
@@ -87,6 +92,12 @@ public static void main(String[] args) throws Exception
 	parseArgs(args);
 	
 	generateOutputFilename();
+	
+	if(fnOnly)
+	{
+		System.out.println(ofn);
+		return;
+	}
 	
 	// Initialize input reader and global variables
 	BufferedReader input = new BufferedReader(new InputStreamReader(new FileInputStream(fn)));
@@ -233,6 +244,7 @@ static void parseArgs(String[] args)
 		System.out.println("  k2=[k2 (int)]");
 		System.out.println("  w2=[w2 (int)]");
 		System.out.println("  ct=[containment_threshold (float)]");
+		System.out.println("  fnonly");
 	}
 	fn = args[0];
 	for(int i = 1; i<args.length; i++)
@@ -260,6 +272,10 @@ static void parseArgs(String[] args)
 		else if(args[i].startsWith("ct="))
 		{
 			CONTAINMENT_THRESHOLD = 0.01*Integer.parseInt(args[i].substring(1 + args[i].indexOf('=')));
+		}
+		else if(args[i].equals("fnonly"))
+		{
+			fnOnly = true;
 		}
 	}
 }
