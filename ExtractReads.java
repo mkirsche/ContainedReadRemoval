@@ -18,7 +18,7 @@ public static void main(String[] args) throws IOException
 		}
 	}
 	Scanner input = new Scanner(new FileInputStream(new File(fn)));
-	boolean fastq = fn.contains("fastq") || fn.contains("fq");
+	boolean fastq = readsFn.contains("fastq") || readsFn.contains("fq");
 	HashSet<String> rs = new HashSet<String>();
 	while(input.hasNext()) rs.add(input.nextLine());
 	int linesPer = fastq ? 4 : 2;
