@@ -30,9 +30,10 @@ public static void main(String[] args) throws IOException
 		half -= lengths.get(i);
 		if(half <= 0)
 		{
-			System.out.println(lengths.get(i));
+			System.out.println("N50: " + lengths.get(i));
 			break;
 		}
 	}
+	System.out.println();
 }
 }
