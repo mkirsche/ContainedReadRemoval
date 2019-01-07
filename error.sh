@@ -1,3 +1,5 @@
+# Script for running containment filtering and wtdbg2 on high-error readset
+
 javac *.java
 
 WTDIR='wtdbg2'
