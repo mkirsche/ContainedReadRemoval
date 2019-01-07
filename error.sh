@@ -19,11 +19,14 @@ else
     exit
 fi
 
-java -cp "${BINDIR}" PB_FilterContainedReads $READS_FILE w1=$W1 k1=$K1 w2=$W2 k2=$K2 ct=$CT
+java -Xmx128000M -cp "${BINDIR}" PB_FilterContainedReads $READS_FILE w1=$W1 k1=$K1 w2=$W2 k2=$K2 ct=$CT
 ofn=`java -cp "${BINDIR}" PB_FilterContainedReads $READS_FILE w1=$W1 k1=$K1 w2=$W2 k2=$K2 ct=$CT fnonly`
 java -cp "${BINDIR}" ExtractReads $ofn $READS_FILE
 
 NEW_READS_FILE=$ofn'.fastq'
+
+echo 'New reads file: '$NEW_READS_FILE
+
 $WTDIR/wtdbg2 -t 16 -i $NEW_READS_FILE -L 5000 -fo $WTDIR'/'$NEW_READS_FILE
 gunzip $WTDIR'/'$NEW_READS_FILE'.ctg.lay.gz'; 
 $WTDIR/wtpoa-cns -t 16 -i $WTDIR'/'$NEW_READS_FILE'.ctg.lay' -fo $WTDIR'/'$NEW_READS_FILE'.ctg.lay.fa'
