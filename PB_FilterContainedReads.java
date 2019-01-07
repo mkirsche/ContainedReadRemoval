@@ -259,7 +259,7 @@ static void parseArgs(String[] args)
 		}
 		else if(args[i].startsWith("ct="))
 		{
-			CONTAINMENT_THRESHOLD = Double.parseDouble(args[i].substring(1 + args[i].indexOf('=')));
+			CONTAINMENT_THRESHOLD = 0.01*Integer.parseInt(args[i].substring(1 + args[i].indexOf('=')));
 		}
 	}
 }
