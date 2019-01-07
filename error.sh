@@ -1,8 +1,10 @@
 # Script for running containment filtering and wtdbg2 on high-error readset
 
-javac *.java
+BINDIR=`dirname $(readlink -f "$0")`
 
-WTDIR='wtdbg2'
+javac $BINDIR/*.java
+
+WTDIR='/scratch/groups/mschatz1/mkirsche/hashing/wtdbg2'
 
 if [ "$#" -eq 6 ]; then
     READS_FILE=$1
@@ -17,9 +19,9 @@ else
     exit
 fi
 
-java PB_FilterContainedReads $READS_FILE w1=$W1 k1=$K1 w2=$W2 k2=$K2 ct=$CT
-ofn=`java PB_FilterContainedReads $READS_FILE w1=$W1 k1=$K1 w2=$W2 k2=$K2 ct=$CT fnonly`
-java ExtractReads $ofn $READS_FILE
+java -cp "${BINDIR}" PB_FilterContainedReads $READS_FILE w1=$W1 k1=$K1 w2=$W2 k2=$K2 ct=$CT
+ofn=`java -cp "${BINDIR}" PB_FilterContainedReads $READS_FILE w1=$W1 k1=$K1 w2=$W2 k2=$K2 ct=$CT fnonly`
+java -cp "${BINDIR}" ExtractReads $ofn $READS_FILE
 
 NEW_READS_FILE=$ofn'.fastq'
 $WTDIR/wtdbg2 -t 16 -i $NEW_READS_FILE -L 5000 -fo $WTDIR'/'$NEW_READS_FILE
