@@ -28,5 +28,5 @@ $WTDIR/wtdbg2 -t 16 -i $NEW_READS_FILE -L 5000 -fo $WTDIR'/'$NEW_READS_FILE
 gunzip $WTDIR'/'$NEW_READS_FILE'.ctg.lay.gz'; 
 $WTDIR/wtpoa-cns -t 16 -i $WTDIR'/'$NEW_READS_FILE'.ctg.lay' -fo $WTDIR'/'$NEW_READS_FILE'.ctg.lay.fa'
 
-
+java -cp "${BINDIR}" AssemblyStats $WTDIR'/'$NEW_READS_FILE'.ctg.lay.fa'
 
