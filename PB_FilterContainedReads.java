@@ -225,6 +225,10 @@ public static void main(String[] args) throws Exception
 	
 	long endTime = System.currentTimeMillis();
 	System.out.println("Time (ms): " + (endTime - startTime));
+
+	PrintWriter debugOut = new PrintWriter(new File("debug.txt"));
+	for(boolean b : contained) debugOut.println(b);
+	debugOut.close();
 }
 /*
  * Parse command line arguments
@@ -232,7 +236,7 @@ public static void main(String[] args) throws Exception
 static void parseArgs(String[] args)
 {
 	if(args.length == 0) return;
-	if(args[1].equals("help"))
+	if(args[0].equals("help"))
 	{
 		System.out.println("Usage:\n");
 		System.out.println("  java PB_FilterContainedReads <readfile>");
