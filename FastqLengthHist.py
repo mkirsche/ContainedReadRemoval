@@ -20,6 +20,6 @@ with open(fn) as f:
         if idx%4 == 2:
             lens.append(len(line))
             
-plt.hist(lens)
+plt.hist(lens, [2500 * i for i in range(1, 30)])
 plt.savefig(ofn)
             
