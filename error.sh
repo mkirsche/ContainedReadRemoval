@@ -2,7 +2,7 @@
 
 BINDIR=`dirname $(readlink -f "$0")`
 
-javac $BINDIR/*.java
+#javac $BINDIR/*.java
 
 WTDIR='/scratch/groups/mschatz1/mkirsche/hashing/wtdbg2'
 
