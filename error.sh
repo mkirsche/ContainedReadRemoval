@@ -24,6 +24,7 @@ ofn=`java -cp "${BINDIR}" PB_FilterContainedReads $READS_FILE w1=$W1 k1=$K1 w2=$
 java -cp "${BINDIR}" ExtractReads $ofn $READS_FILE
 
 NEW_READS_FILE=$ofn'.fastq'
+STATS_FILE=$WTDIR'/'$NEW_READS_FILE'.stats'
 
 echo 'New reads file: '$NEW_READS_FILE
 
@@ -31,11 +32,11 @@ $WTDIR/wtdbg2 -t 16 -i $NEW_READS_FILE -L 5000 --rescue-low-cov-edges -fo $WTDIR
 gunzip -f $WTDIR'/'$NEW_READS_FILE'.ctg.lay.gz'; 
 $WTDIR/wtpoa-cns -t 16 -i $WTDIR'/'$NEW_READS_FILE'.ctg.lay' -fo $WTDIR'/'$NEW_READS_FILE'.ctg.lay.fa'
 
-java -cp "${BINDIR}" AssemblyStats $WTDIR'/'$NEW_READS_FILE'.ctg.lay.fa'
+java -cp "${BINDIR}" AssemblyStats $WTDIR'/'$NEW_READS_FILE'.ctg.lay.fa' | tee $STATS_FILE
 
 numlines=`wc -l $NEW_READS_FILE`
-echo 'Number of lines in new read file: '$numlines
+echo 'Number of lines in new read file: '$numlines | tee -a $STATS_FILE
 
-echo 'Params: w1='$W1', w2='$W2', k1='$K1', k2='$K2', ct='$CT
+echo 'Params: w1='$W1', w2='$W2', k1='$K1', k2='$K2', ct='$CT | tee -a $STATS_FILE
 
 
