@@ -11,19 +11,19 @@ public class PB_FilterContainedReads {
 	/*
 	 * The kmer length and window size for sketching the reads
 	 */
-	static int K1 = 8, W1 = 5;
+	static int K1 = 12, W1 = 5;
 	
 	/*
 	 * The proportion of kmers in a read which must be contained 
 	 * in another read to imply the read being contained
 	 */
-	static double CONTAINMENT_THRESHOLD = 0.1;
+	static double CONTAINMENT_THRESHOLD = 0.25;
 	
 	/*
 	 * The sketch parmeter for making an intial pass for speeding up the algorithm
 	 * A read A is thought to possibly contain another read B only if they share at least one (K2, W2) minimizer
 	 */
-	static int K2 = 14, W2 = 50;
+	static int K2 = 18, W2 = 50;
 	
 	/*
 	 * Whether or not the read file is in fastq format as opposed to fasta
@@ -435,6 +435,7 @@ static long[] getWindowMinimizers(String s, int K, int W)
 	long[] res = new long[kmers.size()];
 	idx = 0;
 	for(long x : kmers) res[idx++] = x;
+	Arrays.sort(res);
 	return res;
 }
 
