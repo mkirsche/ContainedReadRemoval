@@ -15,7 +15,7 @@ if [ "$#" -eq 6 ]; then
     CT=$6
 else
     echo 'Usage: ./error.sh <reads_file> <w1> <k1> <w2> <k2> <ct>'
-    echo 'Example: ./error.sh chr22.fastq 5 8 50 14 10'
+    echo 'Example: ./error.sh chr22.fastq 5 12 50 18 25'
     exit
 fi
 
