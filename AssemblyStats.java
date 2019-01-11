@@ -10,15 +10,18 @@ public static void main(String[] args) throws IOException
 	String fn = args[0];
 	Scanner input = new Scanner(new FileInputStream(new File(fn)));
 	ArrayList<Long> lengths = new ArrayList<Long>();
+	long curLen = 0;
 	while(input.hasNext())
 	{
 		String line = input.nextLine();
-		if(!line.startsWith(">")) continue;
-		String[] ss = line.split(" ");
-		if(ss.length != 2 || ss[1].indexOf('=') ==-1) continue;
-		long len = Long.parseLong(ss[1].substring(1 + ss[1].indexOf('=')));
-		lengths.add(len);
+		if(!line.startsWith(">")) curLen += line.length();
+		else
+		{
+		    if(curLen != 0) lengths.add(curLen);
+		    curLen = 0;
+		}
 	}
+	if(curLen > 0) lengths.add(curLen);
 	Collections.sort(lengths);
 	long total = 0;
 	System.out.println("Number of contigs: " + lengths.size());
