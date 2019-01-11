@@ -20,7 +20,7 @@ fi
 
 java -cp $BINDIR AssemblyStats $WORKINGDIR/$assembly
 
-python $buscofile -i $assembly -l $buscolineage -o $outdir/busco -m genome
+python $buscofile -i $WORKINGDIR/$assembly -l $buscolineage -o $WORKINGDIR/$outdir/busco -m genome
 
-$quastfile -o $outdir/quast -r $ref $assembly
+$quastfile -o $WORKINGDIR/$outdir/quast -r $ref $WORKINGDIR/$assembly
 
