@@ -1,0 +1,25 @@
+# Performs assembly evaluation on a single assembly
+
+quastfile=/home-3/mkirsche@jhu.edu/build/quast-5.0.1/quast-lg.py
+buscofile=/home-3/mkirsche@jhu.edu/build/busco/scripts/run_BUSCO.py
+buscolineage=/home-3/mkirsche@jhu.edu/build/busco/embryophyta_odb9
+
+BINDIR=`dirname $(readlink -f "$0")`
+
+assembly=$1
+ref=$2
+outdir=$3
+
+mkdir $outdir
+
+if [ ! -f "$BINDIR/AssemblyStats.class" ]
+then
+    javac $BINDIR/AssemblyStats.java
+fi
+
+java -cp $BINDIR AssemblyStats $assembly
+
+python $buscofile -i $assembly -l $buscolineage -o $outdir/busco -m genome
+
+$quastfile -o $outdir/quast -r $ref $assembly
+
