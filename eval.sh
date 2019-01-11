@@ -5,6 +5,7 @@ buscofile=/home-3/mkirsche@jhu.edu/build/busco/scripts/run_BUSCO.py
 buscolineage=/home-3/mkirsche@jhu.edu/build/busco/embryophyta_odb9
 
 BINDIR=`dirname $(readlink -f "$0")`
+WORKINGDIR=`pwd`
 
 assembly=$1
 ref=$2
@@ -17,7 +18,7 @@ then
     javac $BINDIR/AssemblyStats.java
 fi
 
-java -cp $BINDIR AssemblyStats $assembly
+java -cp $BINDIR AssemblyStats $WORKINGDIR/$assembly
 
 python $buscofile -i $assembly -l $buscolineage -o $outdir/busco -m genome
 
