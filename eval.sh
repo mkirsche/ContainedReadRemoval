@@ -20,7 +20,8 @@ fi
 
 java -cp $BINDIR AssemblyStats $WORKINGDIR/$assembly
 
-python $buscofile -i $WORKINGDIR/$assembly -l $buscolineage -o $WORKINGDIR/$outdir/busco -m genome
+#TODO make this relative path
+python $buscofile -i $WORKINGDIR/$assembly -l $buscolineage -o $outdir/busco -m genome
 
 $quastfile -o $WORKINGDIR/$outdir/quast -r $ref $WORKINGDIR/$assembly
 
