@@ -7,6 +7,6 @@ BINDIR=`dirname $(readlink -f "$0")`
 for i in `ls $assemblydir`
 do
     echo 'Evaluating ' $i
-    $BINDIR/eval.sh $assemblydir/$i $reffile $i_stats -l $buscolineage
+    $BINDIR/eval.sh $assemblydir'/'$i $reffile $i'_stats' -l $buscolineage
 done
 
