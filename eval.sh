@@ -11,6 +11,18 @@ assembly=$1
 ref=$2
 outdir=$3
 
+while getopts q:b:l option; do
+    case ${option} 
+        in
+        q) quastfile=${OPTARG};;
+        ;;
+        b) buscofile=${OPTARG};;
+        ;;
+        l) buscolineage=${OPTARG};;
+        ;;
+    esac
+done
+
 mkdir $outdir
 
 if [ ! -f "$BINDIR/AssemblyStats.class" ]
