@@ -18,9 +18,8 @@ then
     javac $BINDIR/AssemblyStats.java
 fi
 
-java -cp $BINDIR AssemblyStats $WORKINGDIR/$assembly
+java -cp $BINDIR AssemblyStats $WORKINGDIR/$assembly | tee $outdir/assemblystats.txt
 
-#TODO make this relative path
 cd $outdir
 python $buscofile -i $WORKINGDIR/$assembly -l $buscolineage -o busco -m genome
 cd $WORKINGDIR
