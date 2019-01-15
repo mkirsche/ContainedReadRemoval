@@ -6,10 +6,14 @@ buscolineage=/home-3/mkirsche@jhu.edu/build/busco/embryophyta_odb9
 
 BINDIR=`dirname $(readlink -f "$0")`
 WORKINGDIR=`pwd`
-
 assembly=$1
 ref=$2
 outdir=$3
+
+echo 'Evaluating: '$assembly
+echo '  Reference genome: '$ref
+echo '  Output directory: '$outdir
+echo '  Busco lineage: '$buscolineage
 
 while getopts q:b:l option
 do

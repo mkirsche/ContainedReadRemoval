@@ -4,9 +4,5 @@ buscolineage=$3
 
 BINDIR=`dirname $(readlink -f "$0")`
 
-for i in `ls $assemblydir`
-do
-    echo 'Evaluating ' $i
-    $BINDIR/eval.sh $assemblydir'/'$i $reffile $i'_stats' -l $buscolineage
-done
+ls $OUTDIR/inserts/ | parallel --gnu --timeout 500 --jobs 16 $BINDIR/eval.sh $assemblydir'/'{} $reffile {}'_stats' -l $buscolineage
 
