@@ -35,7 +35,7 @@ fi
 java -cp $BINDIR AssemblyStats $WORKINGDIR/$assembly | tee $outdir/assemblystats.txt
 
 cd $outdir
-python $buscofile -f -i $WORKINGDIR/$assembly -l $buscolineage -o busco -m genome
+python $buscofile -f -c 8 --blast_single_core -i $WORKINGDIR/$assembly -l $buscolineage -o busco -m genome
 cd $WORKINGDIR
 
 $quastfile -o $WORKINGDIR/$outdir/quast -r $ref $WORKINGDIR/$assembly
