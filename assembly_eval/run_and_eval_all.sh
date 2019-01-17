@@ -46,6 +46,8 @@ echo 'assembler: '$assembler
 echo 'paramsfile: '$paramsfile
 echo 'outdir: '$outdir
 echo 'busco lineage: '$buscolineage
+echo 'skip filter?: '$skipfilter
+echo 'skip assembly?: '$skipassembly
 
 if [ -z "${outdir}" ] || [ -z "${readfile}" ] || [ -z "${readtype}" ] || [ -z "${paramsfile}" ] || [ -z "${ref}" ] || [ -z "${buscolineage}" ]; then
     usage
