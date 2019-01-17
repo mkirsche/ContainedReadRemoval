@@ -5,6 +5,7 @@ javac $BINDIR/../src/*.java
 
 skipfilter=0
 skipassembly=0
+skipeval=0
 
 usage() 
 { 
