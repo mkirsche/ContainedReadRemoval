@@ -47,9 +47,9 @@ static double getBuscoScore(String fn) throws IOException
 	while(input.hasNext())
 	{
 		String line = input.nextLine().trim();
-		if(line.startsWith("C:") && line.indexOf('[') != -1)
+		if(line.startsWith("C:") && line.indexOf('%') != -1)
 		{
-			return 0.01 * Double.parseDouble(line.substring(2, line.indexOf('[')));
+			return 0.01 * Double.parseDouble(line.substring(2, line.indexOf('%')));
 		}
 	}
 	return 0;
