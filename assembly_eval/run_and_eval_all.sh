@@ -50,7 +50,7 @@ mkdir $outdir'/readsets'
 mkdir $outdir'/assemblyruns'
 mkdir $outdir'/stats'
 
-cp $refgenome $outdir'/assemblies/ref.fa'
+cp $ref $outdir'/assemblies/ref.fa'
 
 # Iterate over sets of parameters and perform filtering for each
 while read p; 
