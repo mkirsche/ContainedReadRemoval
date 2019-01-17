@@ -18,7 +18,7 @@ usage()
 
 assembler='wtdbg2'
 
-while getopts r:g:t:p:c:l:o:b:skipfilter:skipassembly: option
+while getopts r:g:t:p:c:l:o:b:skipfilter:skipassembly:skipeval: option
 do
     case "${option}"
         in
@@ -32,12 +32,17 @@ do
         b) buscolineage=${OPTARG};;
         skipfilter) skipfilter=1;;
         skipassembly) skipassembly=1;;
+        skipeval) skipeval=1;;
     esac
 done
 
 outdir=$WORKINGDIR/$outdir
 
-if [ $skipassembly -eq 1 ]; then
+if [ "$skipeval" -eq "1" ]; then
+    skipassembly=1
+fi
+
+if [ "$skipassembly" -eq "1" ]; then
     skipfilter=1
 fi
 
@@ -55,20 +60,34 @@ if [ -z "${outdir}" ] || [ -z "${readfile}" ] || [ -z "${readtype}" ] || [ -z "$
     usage
 fi
 
-if [ -d $outdir ]; then
-    rm -r $outdir
+if [ "$skipfilter" -eq "0" ]; then
+    if [ -d $outdir ]; then
+        rm -r $outdir
+    fi
+    mkdir $outdir
+    mkdir $outdir'/readsets'
 fi
 
-mkdir $outdir
-mkdir $outdir'/assemblies'
-mkdir $outdir'/readsets'
-mkdir $outdir'/assemblyruns'
+if [ "$skipassembly" -eq "0" ]; then
+    if [ -d $outdir'/assemblyruns' ]; then
+        rm -r $outdir'/assemblyruns'
+    fi
+    if [ -d $outdir'/assemblies' ]; then
+        rm -r $outdir'/assemblies'
+    fi
+    mkdir $outdir'/assemblies'
+    mkdir $outdir'/assemblyruns'
+fi
+
+if [ -d $outdir'/stats' ]; then
+    rm -r $outdir'/stats'
+fi
 mkdir $outdir'/stats'
 
 cp $ref $outdir'/assemblies/ref.fa'
 
 # Iterate over sets of parameters and perform filtering for each
-if [ $skipfilter -eq "0" ]; then
+if [ "$skipfilter" -eq "0" ]; then
     while read p; 
     do 
         echo $p;
@@ -89,7 +108,7 @@ fi
 cd $outdir'/assemblyruns'
 
 # Go through readsets and perform an assembly for each
-if [ $skipassembly -eq 0 ]; then
+if [ "$skipassembly" -eq "0" ]; then
     for i in `ls $outdir'/readsets'`; do
         echo 'Assembling '$i
         if [ "$assembler" = "canu" ]; then
