@@ -66,7 +66,7 @@ mkdir $outdir'/stats'
 cp $ref $outdir'/assemblies/ref.fa'
 
 # Iterate over sets of parameters and perform filtering for each
-if [ -z "${skipfilter}" ]; then
+if [ $skipfilter -eq "0" ]; then
     while read p; 
     do 
         echo $p;
@@ -87,7 +87,7 @@ fi
 cd $outdir'/assemblyruns'
 
 # Go through readsets and perform an assembly for each
-if [ -z "${skipassembly}" ]; then
+if [ $skipassembly -eq 0 ]; then
     for in in `ls $outdir'/readsets'`; do
         if [ "$assembler" = "canu" ]; then
             if [ "$readtype" = "ccs" ]; then
