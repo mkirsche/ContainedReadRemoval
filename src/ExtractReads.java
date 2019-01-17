@@ -46,6 +46,6 @@ public static void main(String[] args) throws IOException
 		}
 	}
 	out.close();
-	System.out.println(count);
+	System.err.println(count);
 }
 }

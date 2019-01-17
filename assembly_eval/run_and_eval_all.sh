@@ -69,7 +69,7 @@ do
     fi
 done < $paramsfile
 
-cd $WORKINGDIR'/assemblyruns'
+cd $outdir'/assemblyruns'
 
 # Go through readsets and perform an assembly for each
 for in in `ls $outdir'/readsets'`; do
@@ -91,14 +91,14 @@ cd $WORKINGDIR
 
 # Move all of the assemblies into the same folder
 if [ "$assembler" = "canu" ]; then
-    cp $WORKINGDIR'/assemblyruns/canu*/*.fasta' $outdir'/assemblies'
+    cp $outdir'/assemblyruns/canu*/*.fasta' $outdir'/assemblies'
 else
-    cp $WORKINGDIR'/assemblyruns/wtdbg2_assemblies/*.fa' $outdir'/assemblies'
+    cp $outdir'/assemblyruns/wtdbg2_assemblies/*.fa' $outdir'/assemblies'
 fi
 
 #Evaluate all of the assemblies
-cd $WORKINGDIR'/stats'
+cd $outdir'/stats'
 $BINDIR'/eval_all.sh' ../assemblies ../assemblies/ref.fa $buscolineage
 
 cd $WORKINGDIR
-java -cp $BINDIR TableMaker $WORKINGDIR'/assemblies' $WORKINGDIR'/stats' > $outdir/results.out 
+java -cp $BINDIR TableMaker $outdir'/assemblies' $outdir'/stats' > $outdir/results.out 
