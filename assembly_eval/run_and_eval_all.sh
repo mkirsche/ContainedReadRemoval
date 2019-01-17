@@ -13,7 +13,7 @@ usage()
 
 assembler='wtdbg2'
 
-while getopts r:g:t:p:c:l:o:b option
+while getopts r:g:t:p:c:l:o:b: option
 do
     case "${option}"
         in
