@@ -36,6 +36,7 @@ public static void main(String[] args) throws Exception
     	all.add(res);
     }
     System.out.println();
+    System.out.println("Name\tN50\tLength\tNumContigs\tQuastScore\tBuscoScore");
     for(Result r : all)
     {
     	System.out.println(r);
