@@ -90,7 +90,8 @@ cd $outdir'/assemblyruns'
 
 # Go through readsets and perform an assembly for each
 if [ $skipassembly -eq 0 ]; then
-    for in in `ls $outdir'/readsets'`; do
+    for i in in `ls $outdir'/readsets'`; do
+        echo 'Assembling '$i
         if [ "$assembler" = "canu" ]; then
             if [ "$readtype" = "ccs" ]; then
                 crt='pacbio-corrected'
