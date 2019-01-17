@@ -35,6 +35,8 @@ do
     esac
 done
 
+outdir=$WORKINGDIR/$outdir
+
 if [ $skipassembly -eq 1 ]; then
     skipfilter=1
 fi
