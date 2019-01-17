@@ -74,6 +74,8 @@ if [ -z "${skipfilter}" ]; then
             newreadsfile=`../src/filter_pb_np.sh $readfile $p`
         fi
         
+        echo 'New reads file: '$newreadsfile
+        
         if [ -e $newreadsfile ]; then
             mv $newreadsfile $outdir'/readsets'
         fi
