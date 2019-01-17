@@ -13,13 +13,14 @@ usage()
     exit 1; 
 }
 
+skip=0
 skipfilter=0
 skipassembly=0
 skipeval=0
 
 assembler='wtdbg2'
 
-while getopts r:g:t:p:c:l:o:b:1:2:3: option
+while getopts r:g:t:p:c:l:o:b:s: option
 do
     case "${option}"
         in
@@ -31,20 +32,22 @@ do
         p) paramsfile=${OPTARG};;
         g) ref=${OPTARG};;
         b) buscolineage=${OPTARG};;
-        1) skipfilter=1;;
-        2) skipassembly=1;;
-        3) skipeval=1;;
+        s) skip=${OPTARG};;
     esac
 done
 
 outdir=$WORKINGDIR/$outdir
 
-if [ "$skipeval" -eq "1" ]; then
+if [ $skip -ge 1 ]; then
+    skipfilter=1
+fi
+
+if [ $skip -ge 2 ]; then
     skipassembly=1
 fi
 
-if [ "$skipassembly" -eq "1" ]; then
-    skipfilter=1
+if [ $skip -ge 3 ]; then
+    skipeval=1
 fi
 
 echo 'readfile: '$readfile
