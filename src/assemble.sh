@@ -30,6 +30,8 @@ if [ -z "${outfile}" ] || [ -z "${readfile}" ]; then
     usage
 fi
 
+basenamereadfile=${readfile##*/}
+
 if [ "$assembler" = "canu" ]; then
     if [ -z "${length}" ] || [ -z "${readtype}" ]; then
         usage
@@ -42,9 +44,9 @@ if [ "$assembler" = "canu" ]; then
 else
     OUTDIR=$WORKINGDIR'/wtdbg2_assemblies'
     mkdir -p $OUTDIR
-    $wtdir/wtdbg2 -t 16 -i $readfile -L 5000 --rescue-low-cov-edges -fo $OUTDIR'/'$readfile
-    gunzip -f $OUTDIR'/'$readfile'.ctg.lay.gz'; 
-    $wtdir/wtpoa-cns -t 16 -i $OUTDIR'/'$readfile'.ctg.lay' -fo $OUTDIR'/'$readfile'.ctg.lay.fa'
+    $wtdir/wtdbg2 -t 16 -i $readfile -L 5000 --rescue-low-cov-edges -fo $OUTDIR'/'$basenamereadfile
+    gunzip -f $OUTDIR'/'$basenamereadfile'.ctg.lay.gz'; 
+    $wtdir/wtpoa-cns -t 16 -i $OUTDIR'/'$basenamereadfile'.ctg.lay' -fo $OUTDIR'/'$basenamereadfile'.ctg.lay.fa'
 fi
 
 
