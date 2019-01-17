@@ -41,12 +41,7 @@ if [ "$assembler" = "canu" ]; then
     $canufile -d $OUTDIR -p $outfile genomeSize=$length -useGrid=false -stopOnLowCoverage=1 -$type $readfile
 else
     OUTDIR=$WORKINGDIR'/wtdbg2_assemblies'
-    if [ -d $OUTDIR ]; then
-        
-    else
-        mkdir $OUTDIR
-    fi
-    mkdir $OUTDIR
+    mkdir -p $OUTDIR
     $wtdir/wtdbg2 -t 16 -i $readfile -L 5000 --rescue-low-cov-edges -fo $OUTDIR'/'$readfile
     gunzip -f $OUTDIR'/'$readfile'.ctg.lay.gz'; 
     $wtdir/wtpoa-cns -t 16 -i $OUTDIR'/'$readfile'.ctg.lay' -fo $OUTDIR'/'$readfile'.ctg.lay.fa'
