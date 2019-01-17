@@ -1,10 +1,11 @@
+*/*.class
 *.class
 *fastq*
 canu-1.8/
 *.bam
+*.sam
 *.bai
 out.txt
 tmp.txt
-todo
-canucommands.txt
-*uncontained.txt
+*/*uncontained.txt
+debug/

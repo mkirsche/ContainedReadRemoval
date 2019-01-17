@@ -14,8 +14,8 @@ if [ "$#" -eq 6 ]; then
     K2=$5
     CT=$6
 else
-    echo 'Usage: ./error.sh <reads_file> <w1> <k1> <w2> <k2> <ct>'
-    echo 'Example: ./error.sh chr22.fastq 5 12 50 18 25'
+    echo 'Usage: ./filter_pb_np.sh <reads_file> <w1> <k1> <w2> <k2> <ct>'
+    echo 'Example: ./filter_pb_np.sh chr22.fastq 5 12 50 18 25'
     exit
 fi
 
