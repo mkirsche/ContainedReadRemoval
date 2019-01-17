@@ -28,6 +28,14 @@ do
     esac
 done
 
+echo 'readfile: '$readfile
+echo 'readtype: '$readtype
+echo 'reference: '$ref
+echo 'assembler: '$assembler
+echo 'paramsfile: '$paramsfile
+echo 'outdir: '$outdir
+echo 'busco lineage: '$buscolineage
+
 if [ -z "${outdir}" ] || [ -z "${readfile}" ] || [ -z "${readtype}" ] || [ -z "${paramsfile}" ] || [ -z "${ref}" ] || [ -z "${buscolineage}" ]; then
     usage
 fi
