@@ -24,6 +24,5 @@ ofn=`java -cp "${BINDIR}" PB_FilterContainedReads $READS_FILE w1=$W1 k1=$K1 w2=$
 java -cp "${BINDIR}" ExtractReads $ofn $READS_FILE
 
 NEW_READS_FILE=$ofn'.fastq'
-STATS_FILE=$WTDIR'/'$NEW_READS_FILE'.stats'
-echo 'NEW_READS_FILE'
+echo $NEW_READS_FILE
 
