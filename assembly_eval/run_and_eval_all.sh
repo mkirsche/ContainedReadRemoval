@@ -135,7 +135,7 @@ fi
 cd $WORKINGDIR
 
 # Move all of the assemblies into the same folder
-if [ "$assembler" -eq "canu" ]; then
+if [ "$assembler" = "canu" ]; then
     cp $outdir'/assemblyruns/canu*/'*.fasta $outdir'/assemblies'
 else
     cp $outdir'/assemblyruns/wtdbg2_assemblies/'*.fa $outdir'/assemblies'
