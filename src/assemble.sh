@@ -1,4 +1,5 @@
 BINDIR=`dirname $(readlink -f "$0")`
+WORKINGDIR=`pwd`
 assembler='wtdbg2'
 wtdir='/scratch/groups/mschatz1/mkirsche/hashing/wtdbg2'
 canufile='$BINDIR/../canu-1.8/*/bin/canu'
@@ -29,19 +30,21 @@ if [ -z "${outfile}" ] || [ -z "${readfile}" ]; then
     usage
 fi
 
-OUTDIR=$assembler'_'$outfile
-
 if [ "$assembler" = "canu" ]; then
     if [ -z "${length}" ] || [ -z "${readtype}" ]; then
         usage
     fi
+    OUTDIR='canu_'$outfile
     if [ -d $OUTDIR ]; then
         rm -r $OUTDIR
     fi
     $canufile -d $OUTDIR -p $outfile genomeSize=$length -useGrid=false -stopOnLowCoverage=1 -$type $readfile
 else
+    OUTDIR=$WORKINGDIR'/wtdbg2_assemblies'
     if [ -d $OUTDIR ]; then
-        rm -r $OUTDIR
+        
+    else
+        mkdir $OUTDIR
     fi
     mkdir $OUTDIR
     $wtdir/wtdbg2 -t 16 -i $readfile -L 5000 --rescue-low-cov-edges -fo $OUTDIR'/'$readfile
