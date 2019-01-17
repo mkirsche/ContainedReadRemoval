@@ -38,6 +38,7 @@ done
 
 outdir=$WORKINGDIR/$outdir
 
+# Set flags for skipping each phase based on skip value
 if [ $skip -ge 1 ]; then
     skipfilter=1
 fi
@@ -59,6 +60,7 @@ echo 'outdir: '$outdir
 echo 'busco lineage: '$buscolineage
 echo 'skip filter?: '$skipfilter
 echo 'skip assembly?: '$skipassembly
+echo 'skip eval?: '$skipeval
 
 if [ -z "${outdir}" ] || [ -z "${readfile}" ] || [ -z "${readtype}" ] || [ -z "${paramsfile}" ] || [ -z "${ref}" ] || [ -z "${buscolineage}" ]; then
     usage
@@ -133,10 +135,10 @@ fi
 cd $WORKINGDIR
 
 # Move all of the assemblies into the same folder
-if [ "$assembler" = "canu" ]; then
-    cp $outdir'/assemblyruns/canu*/*.fasta' $outdir'/assemblies'
+if [ "$assembler" -eq "canu" ]; then
+    cp $outdir'/assemblyruns/canu*/'*.fasta $outdir'/assemblies'
 else
-    cp $outdir'/assemblyruns/wtdbg2_assemblies/*.fa' $outdir'/assemblies'
+    cp $outdir'/assemblyruns/wtdbg2_assemblies/'*.fa $outdir'/assemblies'
 fi
 
 #Evaluate all of the assemblies
