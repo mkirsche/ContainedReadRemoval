@@ -3,10 +3,6 @@ WORKINGDIR=`pwd`
 javac $BINDIR/*.java
 javac $BINDIR/../src/*.java
 
-skipfilter=0
-skipassembly=0
-skipeval=0
-
 usage() 
 { 
     echo "Usage: $0 -r <readfile> -g <refgenome> -t <readtype> -p <paramsfile> -o <outdir> -b <buscolineage> [-c -l <genome length>]" 1>&2;
@@ -17,9 +13,13 @@ usage()
     exit 1; 
 }
 
+skipfilter=0
+skipassembly=0
+skipeval=0
+
 assembler='wtdbg2'
 
-while getopts r:g:t:p:c:l:o:b:skipfilter:skipassembly:skipeval: option
+while getopts r:g:t:p:c:l:o:b:1:2:3: option
 do
     case "${option}"
         in
@@ -31,9 +31,9 @@ do
         p) paramsfile=${OPTARG};;
         g) ref=${OPTARG};;
         b) buscolineage=${OPTARG};;
-        skipfilter) skipfilter=1;;
-        skipassembly) skipassembly=1;;
-        skipeval) skipeval=1;;
+        1) skipfilter=1;;
+        2) skipassembly=1;;
+        3) skipeval=1;;
     esac
 done
 
