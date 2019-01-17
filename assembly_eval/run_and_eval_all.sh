@@ -1,5 +1,7 @@
 BINDIR=`dirname $(readlink -f "$0")`
 WORKINGDIR=`pwd`
+javac $BINDIR/*.java
+javac $BINDIR/../src/*.java
 
 usage() 
 { 
@@ -99,4 +101,4 @@ cd $WORKINGDIR'/stats'
 $BINDIR'/eval_all.sh' ../assemblies ../assemblies/ref.fa $buscolineage
 
 cd $WORKINGDIR
-java -cp $BINDIR TableMaker $WORKINGDIR'/assemblies' $WORKINGDIR'/stats' > $OUTDIR/results.out 
+java -cp $BINDIR TableMaker $WORKINGDIR'/assemblies' $WORKINGDIR'/stats' > $outdir/results.out 
