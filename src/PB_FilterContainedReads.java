@@ -369,7 +369,7 @@ static class MyThread extends Thread
  */
 static void generateOutputFilename()
 {
-	ofn = fn + "." + K1 + "." + K2 + "." + W1 + "." + W2 + String.format("%.2f", CONTAINMENT_THRESHOLD); 
+	ofn = fn + "." + W1 + "." + K1 + "." + W2 + "." + K2 + String.format("%.2f", CONTAINMENT_THRESHOLD); 
 }
 
 /*

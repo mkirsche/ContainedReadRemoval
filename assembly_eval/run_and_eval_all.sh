@@ -126,6 +126,10 @@ if [ "$skipassembly" -eq "0" ]; then
                 crt='nanopore-raw'
             fi
             $BINDIR/../src/assemble.sh -r $outdir'/readsets/'$i -o $i -c -t $crt -l $length
+            while [ ! $outdir'/assemblyruns/canu_'$i'/'$i'.report' ]
+            do
+              sleep 5m
+            done
         else
             $BINDIR/../src/assemble.sh -r $outdir'/readsets/'$i -o $i
         fi
@@ -136,7 +140,8 @@ cd $WORKINGDIR
 
 # Move all of the assemblies into the same folder
 if [ "$assembler" = "canu" ]; then
-    cp $outdir'/assemblyruns/canu*/'*.fasta $outdir'/assemblies'
+    # TODO wait for slurm jobs to all finish
+    cp $outdir'/assemblyruns/canu*/'*.contigs.fasta $outdir'/assemblies'
 else
     cp $outdir'/assemblyruns/wtdbg2_assemblies/'*.fa $outdir'/assemblies'
 fi
