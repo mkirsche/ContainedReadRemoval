@@ -15,13 +15,16 @@ echo '  Reference genome: '$ref
 echo '  Output directory: '$outdir
 echo '  Busco lineage: '$buscolineage
 
-while getopts q:b:l option
+mode='normal'
+
+while getopts q:b:l:m: option
 do
     case "${option}"
         in
         q) quastfile=${OPTARG};;
         b) buscofile=${OPTARG};;
         l) buscolineage=${OPTARG};;
+        m) mode=${OPTARG}
     esac
 done
 
@@ -33,6 +36,10 @@ then
 fi
 
 java -cp $BINDIR AssemblyStats $WORKINGDIR/$assembly | tee $outdir/assemblystats.txt
+
+if [ "$mode" = "fast" ]; then
+    exit 0;
+fi
 
 cd $outdir
 python $buscofile -f --blast_single_core -i $WORKINGDIR/$assembly -l $buscolineage -o busco -m genome

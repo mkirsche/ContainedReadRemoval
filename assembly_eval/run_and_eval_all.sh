@@ -20,7 +20,9 @@ skipeval=0
 
 assembler='wtdbg2'
 
-while getopts r:g:t:p:c:l:o:b:s: option
+mode='normal'
+
+while getopts r:g:t:p:c:l:o:b:s:m: option
 do
     case "${option}"
         in
@@ -33,6 +35,7 @@ do
         g) ref=${OPTARG};;
         b) buscolineage=${OPTARG};;
         s) skip=${OPTARG};;
+        m) mode=${OPTARG};;
     esac
 done
 
