@@ -9,3 +9,5 @@ out.txt
 tmp.txt
 */*uncontained.txt
 debug/
+debug.txt
+runs/
