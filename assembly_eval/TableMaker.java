@@ -71,6 +71,8 @@ public static void main(String[] args) throws Exception
     	all.add(res);
     }
     System.out.println();
+    System.out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", 
+    		"Name", "n50", "Length", "# Contigs", "Quast", "Busco", "NumReads", "TotalReadLength");
     for(Result r : all)
     {
     	System.out.println(r);
@@ -82,6 +84,7 @@ static void updateNames(ArrayList<Result> rs, HashMap<String, Long> trlm, HashMa
 	{
 		for(String s : trlm.keySet())
 		{
+			System.out.println(r.name+" "+s+" "+trlm.get(s));
 			if(r.name.contains(s))
 			{
 				r.totLength = trlm.get(s);
