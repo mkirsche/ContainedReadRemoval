@@ -3,17 +3,52 @@ import java.io.*;
 public class TableMaker {
 public static void main(String[] args) throws Exception
 {
-	if(args.length != 2)
+	if(args.length != 3)
 	{
-		System.out.println("Usage: java TableMaker <assemblyDir> <statsDir>");
+		System.out.println("Usage: java TableMaker <assemblyDir> <statsDir> <readsetsDir>");
 		return;
 	}
 	String assemblyDir = args[0];
 	String statsDir = args[1];
-	String command = "ls " + assemblyDir;
-    Process child = Runtime.getRuntime().exec(command);
+	String readsetsDir = args[2];
+	String command = "ls " + readsetsDir;
+	Process child = Runtime.getRuntime().exec(command);
     InputStream seqStream = child.getInputStream();
     Scanner seqInput = new Scanner(seqStream);
+    HashMap<String, Long> totReadLengthMap = new HashMap<String, Long>();
+    HashMap<String, Integer> numReadsMap = new HashMap<String, Integer>();
+    while(seqInput.hasNext())
+    {
+    	// Get lines and total bases
+    	String basename = seqInput.next();
+    	String fn = readsetsDir + "/" + basename;
+    	boolean fastq = false;
+    	Scanner sc = new Scanner(new FileInputStream(new File(fn)));
+    	long totLength = 0;
+    	int numReads = 0;
+    	if(sc.hasNext())
+    	{
+    		String s = sc.nextLine();
+        	if(s.startsWith("@")) fastq = true;
+        	numReads++;
+        	totLength += sc.nextLine().length();
+        	if(fastq) for(int i = 0; i<2; i++) sc.nextLine();
+        	while(sc.hasNext())
+        	{
+        		sc.nextLine();
+        		numReads++;
+        		totLength += sc.nextLine().length();
+            	if(fastq) for(int i = 0; i<2; i++) sc.nextLine();
+        	}
+    	}
+    	numReadsMap.put(basename, numReads);
+    	totReadLengthMap.put(basename, totLength);
+    }
+    
+	command = "ls " + assemblyDir;
+    child = Runtime.getRuntime().exec(command);
+    seqStream = child.getInputStream();
+    seqInput = new Scanner(seqStream);
     ArrayList<Result> all = new ArrayList<Result>();
     while(seqInput.hasNext())
     {
@@ -36,11 +71,30 @@ public static void main(String[] args) throws Exception
     	all.add(res);
     }
     System.out.println();
-    System.out.println("Name\tN50\tLength\tNumContigs\tQuastScore\tBuscoScore");
     for(Result r : all)
     {
     	System.out.println(r);
     }
+}
+static void updateNames(ArrayList<Result> rs, HashMap<String, Long> trlm, HashMap<String, Integer> nrm)
+{
+	for(Result r : rs)
+	{
+		for(String s : trlm.keySet())
+		{
+			if(r.name.contains(s))
+			{
+				r.totLength = trlm.get(s);
+			}
+		}
+		for(String s : nrm.keySet())
+		{
+			if(r.name.contains(s))
+			{
+				r.numReads = nrm.get(s);
+			}
+		}
+	}
 }
 static double getBuscoScore(String fn) throws IOException
 {
@@ -48,9 +102,9 @@ static double getBuscoScore(String fn) throws IOException
 	while(input.hasNext())
 	{
 		String line = input.nextLine().trim();
-		if(line.startsWith("C:") && line.indexOf('%') != -1)
+		if(line.startsWith("C:") && line.indexOf('[') != -1)
 		{
-			return 0.01 * Double.parseDouble(line.substring(2, line.indexOf('%')));
+			return 0.01 * Double.parseDouble(line.substring(2, line.indexOf('[')));
 		}
 	}
 	return 0;
@@ -69,11 +123,14 @@ static double getQuastScore(String fn) throws IOException
 	}
 	return 0;
 }
+
 static class Result
 {
 	String name;
 	int n50, length, numContigs;
 	double quast, busco;
+	int numReads;
+	long totLength;
 	Result()
 	{
 		
@@ -89,7 +146,8 @@ static class Result
 	}
 	public String toString()
 	{
-		return name + "\t" + n50 + "\t" + length + "\t" + numContigs + "\t" + quast + "\t" + busco;
+		return name + "\t" + n50 + "\t" + length + "\t" + numContigs + "\t" + quast + "\t" + busco
+				+ "\t" + numReads + "\t" + totLength;
 	}
 }
 }

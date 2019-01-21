@@ -154,4 +154,4 @@ cd $outdir'/stats'
 $BINDIR'/eval_all.sh' ../assemblies ../assemblies/ref.fa $buscolineage
 
 cd $WORKINGDIR
-java -cp $BINDIR TableMaker $outdir'/assemblies' $outdir'/stats' > $outdir/results.out 
+java -cp $BINDIR TableMaker $outdir'/assemblies' $outdir'/stats' $outdir'/readsets' > $outdir/results.out 
