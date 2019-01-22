@@ -22,7 +22,6 @@ public static void main(String[] args) throws Exception
     	// Get lines and total bases
     	String basename = seqInput.next();
     	String fn = readsetsDir + "/" + basename;
-    	System.out.println(basename+" "+fn);
     	boolean fastq = false;
     	Scanner sc = new Scanner(new FileInputStream(new File(fn)));
     	long totLength = 0;
@@ -45,8 +44,6 @@ public static void main(String[] args) throws Exception
     	numReadsMap.put(basename, numReads);
     	totReadLengthMap.put(basename, totLength);
     }
-    
-    System.out.println(numReadsMap.size());
     
 	command = "ls " + assemblyDir;
     child = Runtime.getRuntime().exec(command);
@@ -75,7 +72,6 @@ public static void main(String[] args) throws Exception
     }
     
     updateNames(all, totReadLengthMap, numReadsMap);
-    System.out.println();
     System.out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", 
     		"Name", "n50", "Length", "# Contigs", "Quast", "Busco", "NumReads", "TotalReadLength");
     for(Result r : all)
@@ -89,7 +85,6 @@ static void updateNames(ArrayList<Result> rs, HashMap<String, Long> trlm, HashMa
 	{
 		for(String s : trlm.keySet())
 		{
-			System.out.println(r.name+" "+s+" "+trlm.get(s));
 			if(r.name.contains(s))
 			{
 				r.totLength = trlm.get(s);
