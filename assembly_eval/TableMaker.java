@@ -73,6 +73,8 @@ public static void main(String[] args) throws Exception
     	res.busco = getBuscoScore(buscoFn);
     	all.add(res);
     }
+    
+    updateNames(all, totReadLengthMap, numReadsMap);
     System.out.println();
     System.out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", 
     		"Name", "n50", "Length", "# Contigs", "Quast", "Busco", "NumReads", "TotalReadLength");
