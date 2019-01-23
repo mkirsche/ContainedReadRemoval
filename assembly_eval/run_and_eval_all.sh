@@ -75,6 +75,7 @@ if [ "$skipfilter" -eq "0" ]; then
     fi
     mkdir $outdir
     mkdir $outdir'/readsets'
+    cp $readfile $outdir'/readsets'
 fi
 
 if [ "$skipassembly" -eq "0" ]; then
