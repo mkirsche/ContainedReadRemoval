@@ -152,7 +152,7 @@ fi
 
 #Evaluate all of the assemblies
 cd $outdir'/stats'
-$BINDIR'/eval_all.sh' ../assemblies ../assemblies/ref.fa $buscolineage -m $mode
+$BINDIR'/eval_all.sh' -d ../assemblies -r ../assemblies/ref.fa -l $buscolineage -m $mode
 
 cd $WORKINGDIR
 java -cp $BINDIR TableMaker $outdir'/assemblies' $outdir'/stats' $outdir'/readsets' > $outdir/results.out 
