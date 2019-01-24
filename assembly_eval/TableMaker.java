@@ -101,28 +101,42 @@ static void updateNames(ArrayList<Result> rs, HashMap<String, Long> trlm, HashMa
 }
 static double getBuscoScore(String fn) throws IOException
 {
-	Scanner input = new Scanner(new FileInputStream(new File(fn)));
-	while(input.hasNext())
+	try
 	{
-		String line = input.nextLine().trim();
-		if(line.startsWith("C:") && line.indexOf('%') != -1)
+		Scanner input = new Scanner(new FileInputStream(new File(fn)));
+		while(input.hasNext())
 		{
-			return 0.01 * Double.parseDouble(line.substring(2, line.indexOf('%')));
+			String line = input.nextLine().trim();
+			if(line.startsWith("C:") && line.indexOf('%') != -1)
+			{
+				return 0.01 * Double.parseDouble(line.substring(2, line.indexOf('%')));
+			}
 		}
+	} 
+	catch(Exception e)
+	{
+		return 0;
 	}
 	return 0;
 }
 static double getQuastScore(String fn) throws IOException
 {
-	Scanner input = new Scanner(new FileInputStream(new File(fn)));
-	while(input.hasNext())
+	try
 	{
-		String line = input.nextLine();
-		if(line.startsWith("Genome fraction"))
+		Scanner input = new Scanner(new FileInputStream(new File(fn)));
+		while(input.hasNext())
 		{
-			String[] tokens = line.split(" ");
-			return 0.01 * Double.parseDouble(tokens[tokens.length-1]);
+			String line = input.nextLine();
+			if(line.startsWith("Genome fraction"))
+			{
+				String[] tokens = line.split(" ");
+				return 0.01 * Double.parseDouble(tokens[tokens.length-1]);
+			}
 		}
+	}
+	catch(Exception e)
+	{
+		return 0;
 	}
 	return 0;
 }
