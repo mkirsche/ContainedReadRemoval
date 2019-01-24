@@ -104,7 +104,7 @@ static void updateNames(ArrayList<Result> rs, HashMap<String, Long> trlm, HashMa
 		maxLength = 0;
 		for(String s : nrm.keySet())
 		{
-			if(r.name.contains(s))
+			if(r.name.contains(s) && s.length() > maxLength)
 			{
 				r.numReads = nrm.get(s);
 				maxLength = s.length();
