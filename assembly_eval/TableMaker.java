@@ -92,18 +92,22 @@ static void updateNames(ArrayList<Result> rs, HashMap<String, Long> trlm, HashMa
 {
 	for(Result r : rs)
 	{
+		int maxLength = 0;
 		for(String s : trlm.keySet())
 		{
-			if(r.name.contains(s))
+			if(r.name.contains(s) && s.length() > maxLength)
 			{
 				r.totLength = trlm.get(s);
+				maxLength = s.length();
 			}
 		}
+		maxLength = 0;
 		for(String s : nrm.keySet())
 		{
 			if(r.name.contains(s))
 			{
 				r.numReads = nrm.get(s);
+				maxLength = s.length();
 			}
 		}
 	}
