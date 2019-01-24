@@ -155,4 +155,9 @@ cd $outdir'/stats'
 $BINDIR'/eval_all.sh' -d ../assemblies -r ../assemblies/ref.fa -l $buscolineage -m $mode
 
 cd $WORKINGDIR
-java -cp $BINDIR TableMaker $outdir'/assemblies' $outdir'/stats' $outdir'/readsets' > $outdir/results.out 
+java -cp $BINDIR TableMaker $outdir'/assemblies' $outdir'/stats' $outdir'/readsets' > $outdir/results.out
+
+if [ "$mode" = "fast" ]; then
+    java -cp $BINDIR GetBestAssemblies > $outdir/good.out
+    $BINDIR'/eval_all.sh' -d ../assemblies -r ../assemblies/ref.fa -l $buscolineage -m 'normal' -f $outdir/good.out
+fi 
