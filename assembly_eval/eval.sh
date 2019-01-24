@@ -6,27 +6,33 @@ buscolineage=/home-3/mkirsche@jhu.edu/build/busco/embryophyta_odb9
 
 BINDIR=`dirname $(readlink -f "$0")`
 WORKINGDIR=`pwd`
-assembly=$1
-ref=$2
-outdir=$3
-
-echo 'Evaluating: '$assembly
-echo '  Reference genome: '$ref
-echo '  Output directory: '$outdir
-echo '  Busco lineage: '$buscolineage
 
 mode='normal'
 
-while getopts q:b:l:m: option
+while getopts a:r:o:q:b:l:m: option
 do
     case "${option}"
         in
+        a) assembly=${OPTARG};;
+        r) ref=${OPTARG};;
+        o) outdir=${OPTARG};;
         q) quastfile=${OPTARG};;
         b) buscofile=${OPTARG};;
         l) buscolineage=${OPTARG};;
         m) mode=${OPTARG}
     esac
 done
+
+echo 'Evaluating: '$assembly
+echo '  Reference genome: '$ref
+echo '  Output directory: '$outdir
+echo '  Busco lineage: '$buscolineage
+echo '  Mode: '$mode
+
+if [ -d $outdir ]
+then
+    rm -r $outdir
+fi
 
 mkdir $outdir
 

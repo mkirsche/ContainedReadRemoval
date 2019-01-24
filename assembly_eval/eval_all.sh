@@ -19,5 +19,5 @@ done
 
 echo $mode
 
-ls $assemblydir | parallel --gnu --jobs 4 $BINDIR/eval.sh $assemblydir'/'{} $reffile {}'_stats' -l $buscolineage -m $mode
+ls $assemblydir | parallel --gnu --jobs 4 $BINDIR/eval.sh -a $assemblydir'/'{} -r $reffile -o {}'_stats' -l $buscolineage -m $mode
 
