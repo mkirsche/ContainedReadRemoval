@@ -9,9 +9,17 @@ public static void main(String[] args) throws IOException
 		return;
 	}
 	String fn = args[0];
-	String refName = args[1];
+	String refName = baseName(args[1]);
 	ArrayList<String> names = getGoodAssemblies(fn, refName);
 	for(String s : names) System.out.println(s);
+}
+static String baseName(String s)
+{
+	if(s.indexOf('/') != -1)
+	{
+		s = s.substring(s.lastIndexOf('/')+1);
+	}
+	return s;
 }
 static double prop = .5;
 static ArrayList<String> getGoodAssemblies(String fn, String refName) throws IOException
