@@ -60,6 +60,15 @@ public static void main(String[] args) throws Exception
     	res.name = assemblyFn;
     	String[] tokens = input.nextLine().split(" ");
     	res.numContigs = Integer.parseInt(tokens[tokens.length-1]);
+    	if(res.numContigs == 0)
+    	{
+    		res.length = 0;
+    		res.n50 = 0;
+    		res.quast = 0;
+    		res.busco = 0;
+    		all.add(res);
+    		continue;
+    	}
     	tokens = input.nextLine().split(" ");
     	res.length = Integer.parseInt(tokens[tokens.length-1]);
     	tokens = input.nextLine().split(" ");
