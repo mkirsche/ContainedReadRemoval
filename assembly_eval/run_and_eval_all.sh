@@ -159,6 +159,11 @@ java -cp $BINDIR TableMaker $outdir'/assemblies' $outdir'/stats' $outdir'/readse
 
 if [ "$mode" = "fast" ]; then
     cd $outdir'/stats'
-    java -cp $BINDIR GetBestAssemblies $outdir/results.out $readfile  > $outdir/good.out
+    if [ "$assembler" = "canu" ]; then
+        assemblyfile=$readfile.contigs.fasta
+    else
+        assemblyfile=$readfile.ctg.lay.fa
+    fi
+    java -cp $BINDIR GetBestAssemblies $outdir/results.out $assemblyfile  > $outdir/good.out
     $BINDIR'/eval_all.sh' -d ../assemblies -r ../assemblies/ref.fa -l $buscolineage -m 'normal' -f $outdir/good.out
 fi 
