@@ -1,2 +1,2 @@
-# FICUS
-FIltering Containment Using Sketching
+# JETSKI
+Faster Assemblies with Minimizer-Based Removal of Contained Reads
