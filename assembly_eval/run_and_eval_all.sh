@@ -166,4 +166,5 @@ if [ "$mode" = "fast" ]; then
     fi
     java -cp $BINDIR GetBestAssemblies $outdir/results.out $assemblyfile  > $outdir/good.out
     $BINDIR'/eval_all.sh' -d ../assemblies -r ../assemblies/ref.fa -l $buscolineage -m 'normal' -f $outdir/good.out
+    java -cp $BINDIR TableMaker $outdir'/assemblies' $outdir'/stats' $outdir'/readsets' > $outdir/results2.out
 fi 
