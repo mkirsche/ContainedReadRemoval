@@ -1,11 +1,26 @@
 BINDIR=`dirname $(readlink -f "$0")`
 MINIMAP='/scratch/groups/mschatz1/mkirsche/github/minimap2/minimap2'
-READ_FILE=$1
-REF_FILE=$2
-PAF_FILE=$READ_FILE'.paf'
 COV_FILE=$READ_FILE'.cov.txt'
 
-$MINIMAP $REF_FILE $READ_FILE > $PAF_FILE
+while getopts r:g:p: opt; do
+    case $opt in 
+        p) PAF_FILE=${OPTARG} ;;
+        r) READ_FILE=${OPTARG} ;;
+        g) REF_FILE=${OPTARG} ;;
+    esac
+done
+
+if [ ! -z $PAF_FILE ]
+then
+    echo 'Using existing paf file'
+else
+    PAF_FILE=$READ_FILE'.paf'
+    $MINIMAP $REF_FILE $READ_FILE > $PAF_FILE
+fi
+
+COV_FILE=$PAF_FILE'.cov.txt'
+echo $PAF_FILE
+
 javac $BINDIR/*.java
 java -cp $BINDIR CoverageDistribution $PAF_FILE > $COV_FILE
-python coverage_histogram $COV_FILE $COV_FILE'.png'
+python coverage_histogram.py $COV_FILE $PAF_FILE'.png'

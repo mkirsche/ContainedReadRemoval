@@ -13,3 +13,4 @@ debug.txt
 runs/
 */*.paf
 *.paf
+*/*.cov.txt
