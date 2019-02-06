@@ -11,3 +11,5 @@ tmp.txt
 debug/
 debug.txt
 runs/
+*/*.paf
+*.paf
