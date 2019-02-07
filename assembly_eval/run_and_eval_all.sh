@@ -17,12 +17,13 @@ skip=0
 skipfilter=0
 skipassembly=0
 skipeval=0
+execute=0
 
 assembler='wtdbg2'
 
 mode='normal'
 
-while getopts r:g:t:p:c:l:o:b:s:m: option
+while getopts r:g:t:p:c:l:o:b:s:m:x: option
 do
     case "${option}"
         in
@@ -36,6 +37,7 @@ do
         b) buscolineage=${OPTARG};;
         s) skip=${OPTARG};;
         m) mode=${OPTARG};;
+        x) execute=${OPTARG};;
     esac
 done
 
@@ -52,6 +54,23 @@ fi
 
 if [ $skip -ge 3 ]; then
     skipeval=1
+fi
+
+if [ $execute -ge 1 ]; then
+    skipfilter=1
+    skipassembly=1
+    skipeval=1
+    if [ $execute -eq 1 ]; then
+        skipfilter=0
+    fi
+    
+    if [ $execute -eq 2 ]; then
+        skipassembly=0
+    fi
+    
+    if [ $execute -eq 3 ]; then
+        skipeval=0
+    fi
 fi
 
 echo 'readfile: '$readfile
