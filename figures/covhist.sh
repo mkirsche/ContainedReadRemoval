@@ -1,6 +1,5 @@
 BINDIR=`dirname $(readlink -f "$0")`
 MINIMAP='/scratch/groups/mschatz1/mkirsche/github/minimap2/minimap2'
-COV_FILE=$READ_FILE'.cov.txt'
 
 while getopts r:g:p: opt; do
     case $opt in 
@@ -19,7 +18,6 @@ else
 fi
 
 COV_FILE=$PAF_FILE'.cov.txt'
-echo $PAF_FILE
 
 javac $BINDIR/*.java
 java -cp $BINDIR CoverageDistribution $PAF_FILE > $COV_FILE

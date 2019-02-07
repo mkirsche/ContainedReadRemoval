@@ -161,29 +161,31 @@ fi
 
 cd $WORKINGDIR
 
-# Move all of the assemblies into the same folder
-if [ "$assembler" = "canu" ]; then
-    # TODO wait for slurm jobs to all finish
-    cp $outdir'/assemblyruns/canu*/'*.contigs.fasta $outdir'/assemblies'
-else
-    cp $outdir'/assemblyruns/wtdbg2_assemblies/'*.fa $outdir'/assemblies'
-fi
-
-#Evaluate all of the assemblies
-cd $outdir'/stats'
-$BINDIR'/eval_all.sh' -d ../assemblies -r ../assemblies/ref.fa -l $buscolineage -m $mode
-
-cd $WORKINGDIR
-java -cp $BINDIR TableMaker $outdir'/assemblies' $outdir'/stats' $outdir'/readsets' > $outdir/results.out
-
-if [ "$mode" = "fast" ]; then
-    cd $outdir'/stats'
+if [ "$skipeval" -eq "0" ]; then
+    # Move all of the assemblies into the same folder
     if [ "$assembler" = "canu" ]; then
-        assemblyfile=$readfile.contigs.fasta
+        # TODO wait for slurm jobs to all finish
+        cp $outdir'/assemblyruns/canu*/'*.contigs.fasta $outdir'/assemblies'
     else
-        assemblyfile=$readfile.ctg.lay.fa
+        cp $outdir'/assemblyruns/wtdbg2_assemblies/'*.fa $outdir'/assemblies'
     fi
-    java -cp $BINDIR GetBestAssemblies $outdir/results.out $assemblyfile  > $outdir/good.out
-    $BINDIR'/eval_all.sh' -d ../assemblies -r ../assemblies/ref.fa -l $buscolineage -m 'normal' -f $outdir/good.out
-    java -cp $BINDIR TableMaker $outdir'/assemblies' $outdir'/stats' $outdir'/readsets' > $outdir/results2.out
-fi 
+
+    #Evaluate all of the assemblies
+    cd $outdir'/stats'
+    $BINDIR'/eval_all.sh' -d ../assemblies -r ../assemblies/ref.fa -l $buscolineage -m $mode
+
+    cd $WORKINGDIR
+    java -cp $BINDIR TableMaker $outdir'/assemblies' $outdir'/stats' $outdir'/readsets' > $outdir/results.out
+
+    if [ "$mode" = "fast" ]; then
+        cd $outdir'/stats'
+        if [ "$assembler" = "canu" ]; then
+            assemblyfile=$readfile.contigs.fasta
+        else
+            assemblyfile=$readfile.ctg.lay.fa
+        fi
+        java -cp $BINDIR GetBestAssemblies $outdir/results.out $assemblyfile  > $outdir/good.out
+        $BINDIR'/eval_all.sh' -d ../assemblies -r ../assemblies/ref.fa -l $buscolineage -m 'normal' -f $outdir/good.out
+        java -cp $BINDIR TableMaker $outdir'/assemblies' $outdir'/stats' $outdir'/readsets' > $outdir/results2.out
+    fi
+fi
