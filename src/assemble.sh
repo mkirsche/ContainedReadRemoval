@@ -40,7 +40,7 @@ if [ "$assembler" = "canu" ]; then
     if [ -d $OUTDIR ]; then
         rm -r $OUTDIR
     fi
-    $canufile -d $OUTDIR -p $outfile -genomeSize=$length -useGrid=false -stopOnLowCoverage=1 -$readtype $readfile
+    $canufile -d $OUTDIR -p $outfile -genomeSize=$length -useGrid=true -stopOnLowCoverage=1 -$readtype $readfile
 else
     OUTDIR=$WORKINGDIR'/wtdbg2_assemblies'
     mkdir -p $OUTDIR
