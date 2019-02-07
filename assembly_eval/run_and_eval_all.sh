@@ -129,7 +129,7 @@ if [ "$skipassembly" -eq "0" ]; then
             else
                 crt='nanopore-raw'
             fi
-            $BINDIR/../src/assemble.sh -r $outdir'/readsets/'$i -o $i -c -t $crt -l $length
+            $BINDIR/../src/assemble.sh -r $outdir'/readsets/'$i -g $ref -o $i -c -t $crt -l $length
             while [ ! $outdir'/assemblyruns/canu_'$i'/'$i'.report' ]
             do
               sleep 5m
