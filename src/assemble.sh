@@ -14,7 +14,7 @@ usage()
 
 }
 
-while getopts c:o:r:t:l option
+while getopts c:o:r:t:l: option
 do
     case "${option}"
         in
