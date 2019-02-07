@@ -21,4 +21,4 @@ COV_FILE=$PAF_FILE'.cov.txt'
 
 javac $BINDIR/*.java
 java -cp $BINDIR CoverageDistribution $PAF_FILE > $COV_FILE
-python coverage_histogram.py $COV_FILE $PAF_FILE'.png'
+python $BINDIR/coverage_histogram.py $COV_FILE $PAF_FILE'.png'
