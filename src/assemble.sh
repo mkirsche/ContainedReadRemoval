@@ -2,7 +2,7 @@ BINDIR=`dirname $(readlink -f "$0")`
 WORKINGDIR=`pwd`
 assembler='wtdbg2'
 wtdir='/scratch/groups/mschatz1/mkirsche/hashing/wtdbg2'
-canufile='$BINDIR/../canu-1.8/*/bin/canu'
+canufile='/scratch/groups/mschatz1/mkirsche/conda/bin/canu'
 usage() 
 { 
     echo "Usage: $0 -r <readfile> -o <outfile> [-c -t <readtype> -l <genome length>]" 1>&2;
