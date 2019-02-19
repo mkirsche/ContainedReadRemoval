@@ -9,6 +9,12 @@ import java.io.*;
 public class PB_FilterContainedReads {
 	
 	/*
+	 * For lengths shorter than this threshold, the containment threshold is cut in half,
+	 * prioritizing removing shorter reads with the filter.
+	 */
+	static int LENGTH_FILTER = 10000;
+	
+	/*
 	 * The kmer length and window size for sketching the reads
 	 */
 	static int K1 = 12, W1 = 5;
@@ -20,7 +26,7 @@ public class PB_FilterContainedReads {
 	static double CONTAINMENT_THRESHOLD = 0.25;
 	
 	/*
-	 * The sketch parmeter for making an intial pass for speeding up the algorithm
+	 * The sketch parameter for making an initial pass for speeding up the algorithm
 	 * A read A is thought to possibly contain another read B only if they share at least one (K2, W2) minimizer
 	 */
 	static int K2 = 18, W2 = 50;
@@ -61,7 +67,7 @@ public class PB_FilterContainedReads {
 	static 	int iter = 5000;
 	
 	/*
-	 * The number of reads to process on a single thread before procesing the rest in parallel
+	 * The number of reads to process on a single thread before processing the rest in parallel
 	 */
 	static int PREPROCESS = 5000;
 	
@@ -220,11 +226,11 @@ public static void main(String[] args) throws Exception
 		else count++;
 	
 	// Output number contained and runtime
-	System.err.println(count + " contained out of " + n);
+	System.out.println(count + " contained out of " + n);
 	out.close();
 	
 	long endTime = System.currentTimeMillis();
-	System.err.println("Time (ms): " + (endTime - startTime));
+	System.out.println("Time (ms): " + (endTime - startTime));
 
 	PrintWriter debugOut = new PrintWriter(new File("debug.txt"));
 	for(boolean b : contained) debugOut.println(b);
@@ -369,7 +375,7 @@ static class MyThread extends Thread
  */
 static void generateOutputFilename()
 {
-	ofn = fn + "." + W1 + "." + K1 + "." + W2 + "." + K2 + String.format("%.2f", CONTAINMENT_THRESHOLD); 
+	ofn = fn + "." + K1 + "." + K2 + "." + W1 + "." + W2 + String.format("%.2f", CONTAINMENT_THRESHOLD); 
 }
 
 /*
@@ -532,7 +538,13 @@ static class Read implements Comparable<Read>
 			}
 		}
 		if(common > CONTAINMENT_THRESHOLD * m - 1e-9)
+		{
 			return true;
+		}
+		if(r.len < LENGTH_FILTER && common > .5 * CONTAINMENT_THRESHOLD * m - 1e-9)
+		{
+			return true;
+		}
 		return false;
 	}
 	
