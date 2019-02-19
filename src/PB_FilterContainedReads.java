@@ -226,11 +226,11 @@ public static void main(String[] args) throws Exception
 		else count++;
 	
 	// Output number contained and runtime
-	System.out.println(count + " contained out of " + n);
+	System.err.println(count + " contained out of " + n);
 	out.close();
 	
 	long endTime = System.currentTimeMillis();
-	System.out.println("Time (ms): " + (endTime - startTime));
+	System.err.println("Time (ms): " + (endTime - startTime));
 
 	PrintWriter debugOut = new PrintWriter(new File("debug.txt"));
 	for(boolean b : contained) debugOut.println(b);
