@@ -9,6 +9,12 @@ import java.io.*;
 public class PB_FilterContainedReads {
 	
 	/*
+	 * For lengths shorter than this threshold, the containment threshold is cut in half,
+	 * prioritizing removing shorter reads with the filter.
+	 */
+	static int LENGTH_FILTER = 10000;
+	
+	/*
 	 * The kmer length and window size for sketching the reads
 	 */
 	static int K1 = 12, W1 = 5;
@@ -20,7 +26,7 @@ public class PB_FilterContainedReads {
 	static double CONTAINMENT_THRESHOLD = 0.25;
 	
 	/*
-	 * The sketch parmeter for making an intial pass for speeding up the algorithm
+	 * The sketch parameter for making an initial pass for speeding up the algorithm
 	 * A read A is thought to possibly contain another read B only if they share at least one (K2, W2) minimizer
 	 */
 	static int K2 = 18, W2 = 50;
@@ -38,7 +44,7 @@ public class PB_FilterContainedReads {
 	/*
 	 * The maximum number of reads to consider for containment
 	 */
-	static int LIMIT = 50;
+	static int LIMIT = 5;
 	
 	/*
 	 * Input and output filenames
@@ -61,7 +67,7 @@ public class PB_FilterContainedReads {
 	static 	int iter = 5000;
 	
 	/*
-	 * The number of reads to process on a single thread before procesing the rest in parallel
+	 * The number of reads to process on a single thread before processing the rest in parallel
 	 */
 	static int PREPROCESS = 5000;
 	
@@ -80,6 +86,12 @@ public class PB_FilterContainedReads {
 	 */
 	static boolean fnOnly = false;
 	
+	/*
+	 * Output for debugging and analysis
+	 */
+	static String debugFn = "containment_debug.txt";
+	static String[] debugLines;
+	
 @SuppressWarnings("resource")
 public static void main(String[] args) throws Exception
 {
@@ -89,9 +101,14 @@ public static void main(String[] args) throws Exception
 	// Initialize filenames
 	fn = "ERR2173373.fastq";
 	
+	ofn = "";
+	
 	parseArgs(args);
 	
-	generateOutputFilename();
+	if(ofn.length() == 0)
+	{
+		generateOutputFilename();
+	}
 	
 	if(fnOnly)
 	{
@@ -147,6 +164,10 @@ public static void main(String[] args) throws Exception
 			
 			// Add read to read list
 			String name = input.readLine(), read = input.readLine();
+			if(name.startsWith(">"))
+			{
+				fastq = false;
+			}
 			rs.add(new Read(name, read));
 			if(fastq)
 			{	
@@ -159,7 +180,7 @@ public static void main(String[] args) throws Exception
 			break;
 		}
 	}
-	
+		
 	// Finish partial batch at the end
 	int start = lastEnd + 1;
 	int end = rs.size() - 1;
@@ -188,6 +209,7 @@ public static void main(String[] args) throws Exception
 	// Initialize all reads as non-contained
 	int n = rs.size();
 	contained = new boolean[n];
+	debugLines = new String[n];
 	
 	// Process a batch initially to check all future reads against
 	for(int i = 0; i<PREPROCESS; i++) process(i);
@@ -229,6 +251,13 @@ public static void main(String[] args) throws Exception
 	PrintWriter debugOut = new PrintWriter(new File("debug.txt"));
 	for(boolean b : contained) debugOut.println(b);
 	debugOut.close();
+	
+	debugOut = new PrintWriter(new File(debugFn));
+	for(String s : debugLines)
+	{
+		debugOut.println(s);
+	}
+	debugOut.close();
 }
 /*
  * Parse command line arguments
@@ -239,8 +268,7 @@ static void parseArgs(String[] args)
 	if(args[0].equals("help"))
 	{
 		System.out.println("Usage:\n");
-		System.out.println("  java PB_FilterContainedReads <readfile>");
-		System.out.println("\n\n");
+		System.out.println("  java PB_FilterContainedReads <readfile>\n");
 		System.out.println("Optional arguments:");
 		System.out.println("  nt=[num_threads (int)]");
 		System.out.println("  k1=[k1 (int)]");
@@ -248,6 +276,7 @@ static void parseArgs(String[] args)
 		System.out.println("  k2=[k2 (int)]");
 		System.out.println("  w2=[w2 (int)]");
 		System.out.println("  ct=[containment_threshold (float)]");
+		System.out.println("  ofn=[output filename (string)]");
 		System.out.println("  fnonly");
 	}
 	fn = args[0];
@@ -275,7 +304,12 @@ static void parseArgs(String[] args)
 		}
 		else if(args[i].startsWith("ct="))
 		{
-			CONTAINMENT_THRESHOLD = 0.01*Integer.parseInt(args[i].substring(1 + args[i].indexOf('=')));
+			CONTAINMENT_THRESHOLD = Double.parseDouble(args[i].substring(1 + args[i].indexOf('=')));
+			if(CONTAINMENT_THRESHOLD > 1) CONTAINMENT_THRESHOLD *= 0.01; // handle ct given as percent
+		}
+		else if(args[i].startsWith("ofn="))
+		{
+			ofn = args[i].substring(1 + args[i].indexOf('='));
 		}
 		else if(args[i].equals("fnonly"))
 		{
@@ -290,6 +324,8 @@ static void process(int i) throws Exception
 {
 	int done = processed.incrementAndGet();
 	if(done%1000 == 0) System.err.println("Processed " + done + " reads");
+	
+	debugLines[i] = rs.get(i).name + " 1.0 " + rs.get(i).len;
 	
 	// Set of other reads to check
 	HashSet<Integer> check = new HashSet<Integer>();
@@ -310,18 +346,41 @@ static void process(int i) throws Exception
 	for(long x : rs.get(i).ms2)
 	{
 		if(!map.containsKey(x)) continue;
-		for(int y : map.get(x)) check.add(y);
+		if(map.get(x).size() == LIMIT)
+		{
+			// Kmer seen too many times
+			continue;
+		}
+		for(int y : map.get(x))
+		{
+			check.add(y);
+		}
 	}
+	
+	double maxContainment = 0.0;
+	int bestIdx = -1;
 	
 	// Check if any of the candidates contain this read
 	for(int j : check)
 	{
 		if(i == j) continue;
+		double score =  rs.get(j).containmentScore(rs.get(i));
+		if(score > maxContainment)
+		{
+			bestIdx = j;
+			maxContainment = score;
+		}
 		if(rs.get(j).contains(rs.get(i)))
 		{
 			contained[i] = true;
 			break;
 		}
+	}
+	
+	debugLines[i] = rs.get(i).name + " " + maxContainment + " " + rs.get(i).len;
+	if(bestIdx != -1)
+	{
+		debugLines[i] += " " + rs.get(bestIdx).name;
 	}
 	
 	// If this read is not contained, let it be a candidate for future reads
@@ -369,7 +428,7 @@ static class MyThread extends Thread
  */
 static void generateOutputFilename()
 {
-	ofn = fn + "." + W1 + "." + K1 + "." + W2 + "." + K2 + String.format("%.2f", CONTAINMENT_THRESHOLD); 
+	ofn = fn + "." + K1 + "." + K2 + "." + W1 + "." + W2 + String.format("%.2f", CONTAINMENT_THRESHOLD); 
 }
 
 /*
@@ -532,8 +591,34 @@ static class Read implements Comparable<Read>
 			}
 		}
 		if(common > CONTAINMENT_THRESHOLD * m - 1e-9)
+		{
 			return true;
+		}
+		if(r.len < LENGTH_FILTER && common > .5 * CONTAINMENT_THRESHOLD * m - 1e-9)
+		{
+			return true;
+		}
 		return false;
+	}
+	
+	double containmentScore(Read r)
+	{
+		int common = 0, n = ms.length, m = r.ms.length;
+		int i = 0, j = 0;
+		while(i < n && j < m)
+		{
+			long a = ms[i], b = r.ms[j];
+			if(a < b) i++;
+			else if(a > b) j++;
+			else
+			{
+				i++;
+				j++;
+				common++;
+			}
+		}
+		
+		return 1.0 * common / m;
 	}
 	
 	// When sorting, sort by descending read length

@@ -14,3 +14,4 @@ runs/
 */*.paf
 *.paf
 */*.cov.txt
+*/*.fa
