@@ -37,8 +37,7 @@ public static void main(String[] args)  throws IOException
 	PrintWriter readOut = new PrintWriter(new File(readOfn));
 	//readOut = new PrintWriter(System.out);
 	PrintWriter scoreOut = new PrintWriter(new File(scoreOfn));
-	PrintWriter genomeOut = new PrintWriter(new File(outRefFn));
-	
+	PrintWriter genomeOut = new PrintWriter(new File(outRefFn));	
 	nd = new NormalDistribution(mean, stdev);
 	r = new Random();
 	
