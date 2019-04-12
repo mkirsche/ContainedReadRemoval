@@ -37,7 +37,8 @@ public static void main(String[] args)  throws IOException
 	PrintWriter readOut = new PrintWriter(new File(readOfn));
 	//readOut = new PrintWriter(System.out);
 	PrintWriter scoreOut = new PrintWriter(new File(scoreOfn));
-	PrintWriter genomeOut = new PrintWriter(new File(outRefFn));	
+	PrintWriter genomeOut = new PrintWriter(new File(outRefFn));
+	
 	nd = new NormalDistribution(mean, stdev);
 	r = new Random();
 	
@@ -61,6 +62,7 @@ static String readKey = "readfile";
 static String scoreKey = "scorefile";
 static String coverageKey = "coverage";
 static String maxLengthKey = "maxlength";
+static String errorKey = "error";
 static int parseArgs(String[] args)
 {
 	if(args.length == 0)
@@ -112,6 +114,14 @@ static int parseArgs(String[] args)
 		{
 			coverage = Integer.parseInt(value);
 		}
+		else if(key.equals(errorKey))
+		{
+			errorRate = Double.parseDouble(value);
+			if(errorRate > 1)
+			{
+				errorRate /= 100;
+			}
+		}
 	}
 	
 	return 0;
@@ -127,6 +137,7 @@ static void help()
 	System.out.println("  " + stdevKey + ": standard deviation of read length");
 	System.out.println("  " + coverageKey + ": coverage to simulate");
 	System.out.println("  " + maxLengthKey + ": maximum prefix of genome to simulate from");
+	System.out.println("  " + errorRate + ": error rate of reads relative to the reference");
 }
 static ArrayList<Pair> simulatePositions()
 {
