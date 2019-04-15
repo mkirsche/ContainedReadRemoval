@@ -12,7 +12,7 @@ public class PB_FilterContainedReads {
 	 * For lengths shorter than this threshold, the containment threshold is cut in half,
 	 * prioritizing removing shorter reads with the filter.
 	 */
-	static int LENGTH_FILTER = 10000;
+	static int LENGTH_FILTER = 12000;
 	
 	/*
 	 * The kmer length and window size for sketching the reads
@@ -24,6 +24,7 @@ public class PB_FilterContainedReads {
 	 * in another read to imply the read being contained
 	 */
 	static double CONTAINMENT_THRESHOLD = 0.25;
+	static double CONTAINMENT_THRESHOLD2 = 0.25;
 	
 	/*
 	 * The sketch parameter for making an initial pass for speeding up the algorithm
@@ -167,7 +168,7 @@ public static void main(String[] args) throws Exception
 			if(name.startsWith(">"))
 			{
 				fastq = false;
-			}
+			}	
 			rs.add(new Read(name, read));
 			if(fastq)
 			{	
@@ -276,6 +277,7 @@ static void parseArgs(String[] args)
 		System.out.println("  k2=[k2 (int)]");
 		System.out.println("  w2=[w2 (int)]");
 		System.out.println("  ct=[containment_threshold (float)]");
+		System.out.println("  ct2=[containment_threshold2 (float)]");
 		System.out.println("  ofn=[output filename (string)]");
 		System.out.println("  fnonly");
 	}
@@ -307,6 +309,11 @@ static void parseArgs(String[] args)
 			CONTAINMENT_THRESHOLD = Double.parseDouble(args[i].substring(1 + args[i].indexOf('=')));
 			if(CONTAINMENT_THRESHOLD > 1) CONTAINMENT_THRESHOLD *= 0.01; // handle ct given as percent
 		}
+		else if(args[i].startsWith("ct2="))
+		{
+			CONTAINMENT_THRESHOLD2 = Double.parseDouble(args[i].substring(1 + args[i].indexOf('=')));
+			if(CONTAINMENT_THRESHOLD2 > 1) CONTAINMENT_THRESHOLD2 *= 0.01; // handle ct given as percent
+		}
 		else if(args[i].startsWith("ofn="))
 		{
 			ofn = args[i].substring(1 + args[i].indexOf('='));
@@ -325,7 +332,7 @@ static void process(int i) throws Exception
 	int done = processed.incrementAndGet();
 	if(done%1000 == 0) System.err.println("Processed " + done + " reads");
 	
-	debugLines[i] = rs.get(i).name + " 1.0 " + rs.get(i).len;
+	debugLines[i] = rs.get(i).name + " 1.0 " + " 1.0 " + " 1.0 " + rs.get(i).len;
 	
 	// Set of other reads to check
 	HashSet<Integer> check = new HashSet<Integer>();
@@ -349,7 +356,7 @@ static void process(int i) throws Exception
 		if(map.get(x).size() == LIMIT)
 		{
 			// Kmer seen too many times
-			continue;
+			//continue;
 		}
 		for(int y : map.get(x))
 		{
@@ -358,41 +365,64 @@ static void process(int i) throws Exception
 	}
 	
 	double maxContainment = 0.0;
+	double[] maxEdges = new double[] {0, 0};
 	int bestIdx = -1;
+	boolean foundContained = false;
 	
 	// Check if any of the candidates contain this read
 	for(int j : check)
 	{
 		if(i == j) continue;
-		double score =  rs.get(j).containmentScore(rs.get(i));
-		if(score > maxContainment)
+		double[] score =  rs.get(j).containmentScore(rs.get(i));
+		if(score[0] > maxContainment)
 		{
-			bestIdx = j;
-			maxContainment = score;
+			if(!foundContained)
+			{
+				bestIdx = j;
+				maxContainment = score[0];
+				maxEdges[0] = score[1];
+				maxEdges[1] = score[2];
+			}
 		}
 		if(rs.get(j).contains(rs.get(i)))
 		{
 			contained[i] = true;
-			break;
+			if(!foundContained || score[0] > maxContainment)
+			{
+				foundContained = true;
+				bestIdx = j;
+				maxContainment = score[0];
+				maxEdges[0] = score[1];
+				maxEdges[1] = score[2];
+			}
+			//break;
 		}
 	}
 	
-	debugLines[i] = rs.get(i).name + " " + maxContainment + " " + rs.get(i).len;
+	debugLines[i] = rs.get(i).name + " " + maxContainment + " " + maxEdges[0] + " " + maxEdges[1] + " " + rs.get(i).len;
 	if(bestIdx != -1)
 	{
 		debugLines[i] += " " + rs.get(bestIdx).name;
 	}
 	
 	// If this read is not contained, let it be a candidate for future reads
-	if(!contained[i])
+	//if(!contained[i])
 	{
 		for(long x : rs.get(i).ms2)
 		{
 			if(!map.containsKey(x)) map.put(x, new ConcurrentLinkedDeque<Integer>());
-			if(map.get(x).size() < LIMIT) map.get(x).add(i);
+			if(map.get(x).size() < LIMIT)
+			{
+				map.get(x).add(i);
+			}
 		}
 	}
 	rs.get(i).ms2 = null;
+}
+
+static <T> void increment(TreeMap<T, Integer> map, T key)
+{
+	map.put(key, 1 + (map.containsKey(key) ? map.get(key) : 0));
 }
 
 /*
@@ -434,13 +464,17 @@ static void generateOutputFilename()
 /*
  * Computes the (K, W) minimizers of a string s
  */
-static long[] getWindowMinimizers(String s, int K, int W)
+static long[][] getWindowMinimizers(String s, int K, int W)
 {
 	// String too short for any windows - return empty list
-	if(s.length() <= K + W) return  new long[] {};
+	if(s.length() <= K + W) return  new long[][] {{},{}};
 	
 	// Set to hold minimizers
-	HashSet<Long> kmers = new HashSet<Long>();
+	TreeMap<Long, Integer> kmers = new TreeMap<Long, Integer>();
+	TreeMap<Long, Integer> startKmers = new TreeMap<Long, Integer>();
+	TreeMap<Long, Integer> endKmers = new TreeMap<Long, Integer>();
+	
+	int endThreshold = 500;
 	
 	// Current values of kmer and reverse complement
 	long[] ks = new long[2];
@@ -469,7 +503,17 @@ static long[] getWindowMinimizers(String s, int K, int W)
 	// Add minimizer from first window
 	int bestIdx = 0;
 	for(int i = 1; i<vals.length; i++) if(vals[i] < vals[bestIdx]) bestIdx = i;
-	for(int i = 0; i<vals.length; i++) if(vals[i] == vals[bestIdx]) kmers.add(kWindow[i]);
+	for(int i = 0; i<vals.length; i++)
+	{
+		if(vals[i] == vals[bestIdx])
+		{
+			increment(kmers, kWindow[i]);
+			if(endThreshold > 0)
+			{
+				increment(startKmers, kWindow[i]);
+			}
+		}
+	}
 	
 	// Compute subsequent windows
 	for(int c = K+W; c<s.length(); c++)
@@ -487,15 +531,48 @@ static long[] getWindowMinimizers(String s, int K, int W)
 		// Add minimizer
 		bestIdx = 0;
 		for(int i = 1; i<vals.length; i++) if(vals[i] < vals[bestIdx]) bestIdx = i;
-		for(int i = 0; i<vals.length; i++) if(vals[i] == vals[bestIdx]) kmers.add(kWindow[i]);
+		for(int i = 0; i<vals.length; i++) if(vals[i] == vals[bestIdx])
+		{
+			if(c - (K + W - 1) < endThreshold)
+			{
+				increment(startKmers, kWindow[i]);
+			}
+			if(s.length() - c - 1 < endThreshold)
+			{
+				increment(endKmers, kWindow[i]);
+			}
+			increment(kmers, kWindow[i]);
+		}
+	}
+		
+	// Convert set to array
+	long[] res = new long[kmers.size()*2];
+	idx = 0;
+	for(long x : kmers.keySet())
+	{
+		res[idx] = x;
+		res[idx+1] = kmers.get(x);
+		idx += 2;
+	}
+		
+	long[] start = new long[startKmers.size()*2];
+	long[] end = new long[endKmers.size()*2];
+	idx = 0;
+	for(long x : startKmers.keySet())
+	{
+		start[idx] = x;
+		start[idx+1] = startKmers.get(x);
+		idx += 2;
+	}
+	idx = 0;
+	for(long x : endKmers.keySet())
+	{
+		end[idx] = x;
+		end[idx+1] = endKmers.get(x);
+		idx += 2;
 	}
 	
-	// Convert set to array
-	long[] res = new long[kmers.size()];
-	idx = 0;
-	for(long x : kmers) res[idx++] = x;
-	Arrays.sort(res);
-	return res;
+	return new long[][] {res, start, end};
 }
 
 /*
@@ -536,6 +613,14 @@ static long hash(long val)
 	x = (x + (x << 31)) & ((1L<<m)-1);
 	return x;
 }
+
+static long[] everyOther(long[] a)
+{
+	int n = a.length/2;
+	long[] res = new long[n];
+	for(int i = 0; i<n; i++) res[i] = a[2*i];
+	return res;
+}
 /*
  * A class representing a genomic read and its sketch(es)
  */
@@ -549,6 +634,10 @@ static class Read implements Comparable<Read>
 	
 	// The secondary sketch used to find candidates
 	long[] ms2;
+	
+	// The sketches around the ends of the read
+	long[] starts;
+	long[] ends;
 	
 	// The length of the read (bp)
 	int len;
@@ -568,8 +657,12 @@ static class Read implements Comparable<Read>
 	void init()
 	{
 		line = line.toUpperCase();
-		ms = getWindowMinimizers(line, K1, W1);
-		ms2 = getWindowMinimizers(line, K2, W2);
+		long[][] k1w1Mini = getWindowMinimizers(line, K1, W1);	
+		ms = k1w1Mini[0];
+		starts = k1w1Mini[1];
+		ends = k1w1Mini[2];
+		long[][] k2w2Mini = getWindowMinimizers(line, K2, W2);
+		ms2 = everyOther(k2w2Mini[0]);
 		line = null;
 	}
 	
@@ -581,44 +674,141 @@ static class Read implements Comparable<Read>
 		while(i < n && j < m)
 		{
 			long a = ms[i], b = r.ms[j];
-			if(a < b) i++;
-			else if(a > b) j++;
+			if(a < b) i+=2;
+			else if(a > b) j+=2;
 			else
 			{
-				i++;
-				j++;
-				common++;
+				common+=Math.min(ms[i+1], r.ms[j+1]);
+				i+=2;
+				j+=2;
 			}
 		}
-		if(common > CONTAINMENT_THRESHOLD * m - 1e-9)
+		
+		int totCount = 0;
+		for(j = 0; j<m; j += 2)
 		{
-			return true;
+			totCount += r.ms[j+1];
 		}
-		if(r.len < LENGTH_FILTER && common > .5 * CONTAINMENT_THRESHOLD * m - 1e-9)
+		
+		boolean ctPassed = false;
+		
+		if(common > CONTAINMENT_THRESHOLD * totCount - 1e-9)
 		{
-			return true;
+			ctPassed = true;
 		}
-		return false;
+		else if(r.len < LENGTH_FILTER && common > .5 * CONTAINMENT_THRESHOLD * totCount - 1e-9)
+		{
+			ctPassed = true;
+		}
+		
+		if(!ctPassed)
+		{
+			return false;
+		}
+		
+		boolean good = true;
+		
+		for(long[] x : new long[][]{r.starts, r.ends})
+		{
+		
+			common = 0;
+			n = ms.length;
+			m = x.length;
+			i = j = 0;
+			while(i < n && j < m)
+			{
+				long a = ms[i], b = x[j];
+				if(a < b) i+=2;
+				else if(a > b) j+=2;
+				else
+				{
+					common+=Math.min(ms[i+1], x[j+1]);
+					i+=2;
+					j+=2;
+				}
+			}
+			
+			totCount = 0;
+			for(j = 0; j<m; j += 2)
+			{
+				totCount += x[j+1];
+			}
+			
+			if(common > CONTAINMENT_THRESHOLD2 * totCount)
+			{
+				continue;
+			}
+			
+			else if(r.len < LENGTH_FILTER && common > .5 * CONTAINMENT_THRESHOLD2 * totCount - 1e-9)
+			{
+				continue;
+			}
+			
+			good = false;
+		}
+		
+		return good;
 	}
 	
-	double containmentScore(Read r)
+	double[] containmentScore(Read r)
 	{
+		double[] res = new double[3];
 		int common = 0, n = ms.length, m = r.ms.length;
 		int i = 0, j = 0;
 		while(i < n && j < m)
 		{
 			long a = ms[i], b = r.ms[j];
-			if(a < b) i++;
-			else if(a > b) j++;
+			if(a < b) i+=2;
+			else if(a > b) j+=2;
 			else
 			{
-				i++;
-				j++;
-				common++;
+				common+=Math.min(ms[i+1], r.ms[j+1]);
+				i+=2;
+				j+=2;
 			}
 		}
 		
-		return 1.0 * common / m;
+		int totCount = 0;
+		for(j = 0; j<m; j += 2)
+		{
+			totCount += r.ms[j+1];
+		}
+		
+		res[0] = 1.0 * common / totCount;
+		
+		int idx = 1;
+		
+		for(long[] x : new long[][]{r.starts, r.ends})
+		{
+		
+			common = 0;
+			n = ms.length;
+			m = x.length;
+			i = j = 0;
+			while(i < n && j < m)
+			{
+				long a = ms[i], b = x[j];
+				if(a < b) i+=2;
+				else if(a > b) j+=2;
+				else
+				{
+					common+=Math.min(ms[i+1], x[j+1]);
+					i+=2;
+					j+=2;
+				}
+			}
+			
+			totCount = 0;
+			for(j = 0; j<m; j += 2)
+			{
+				totCount += x[j+1];
+			}
+			
+			res[idx] = 1.0 * common / totCount;
+			idx++;
+		}
+		
+		return res;
 	}
 	
 	// When sorting, sort by descending read length

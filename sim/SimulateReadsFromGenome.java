@@ -5,9 +5,9 @@
  * For uncontained reads, it's the number of bases in this read which are not contained in the read r 
  *   such that r contains the highest proportion of this read.  It is also multiplied by -1.
  */
+
 import java.util.*;
 import java.io.*;
-
 import org.apache.commons.math3.distribution.NormalDistribution;
 
 public class SimulateReadsFromGenome {
@@ -18,14 +18,17 @@ public class SimulateReadsFromGenome {
 	static double errorRate = 0.12;
 	static NormalDistribution nd;
 	static String genomeFn, readOfn, scoreOfn;
+	static String sampleFn;
 	static Random r;
 	static String outRefFn;
+	static  Distribution dist;
 public static void main(String[] args)  throws IOException
 {
 	genomeFn = "/home/mkirsche/2018_08_Crossdel/genome.fa";
 	readOfn = "simulatedreads.fa";
 	scoreOfn = "simulatedscores.txt";
 	outRefFn = "simulatedgenome.txt";
+	sampleFn = "";
 	
 	int argParseErrorKey = parseArgs(args);
 	if(argParseErrorKey != 0)
@@ -33,9 +36,13 @@ public static void main(String[] args)  throws IOException
 		return;
 	}
 	
+	if(sampleFn.length() > 0)
+	{
+		dist = getDistribution(sampleFn);
+	}
+	
 	Scanner input = new Scanner(new FileInputStream(new File(genomeFn)));
 	PrintWriter readOut = new PrintWriter(new File(readOfn));
-	//readOut = new PrintWriter(System.out);
 	PrintWriter scoreOut = new PrintWriter(new File(scoreOfn));
 	PrintWriter genomeOut = new PrintWriter(new File(outRefFn));
 	
@@ -63,6 +70,7 @@ static String scoreKey = "scorefile";
 static String coverageKey = "coverage";
 static String maxLengthKey = "maxlength";
 static String errorKey = "error";
+static String sampleKey = "sample";
 static int parseArgs(String[] args)
 {
 	if(args.length == 0)
@@ -97,6 +105,10 @@ static int parseArgs(String[] args)
 		else if(key.equals(scoreKey))
 		{
 			scoreOfn = value;
+		}
+		else if(key.equals(sampleKey))
+		{
+			sampleFn = value;
 		}
 		else if(key.equals(meanKey))
 		{
@@ -154,9 +166,17 @@ static ArrayList<Pair> simulatePositions()
 	}
 	return res;
 }
+static int sampleLength()
+{
+	if(dist != null)
+	{
+		return dist.sample();
+	}
+	return (int)(nd.sample() + 0.5);
+}
 static Pair sampleRead(int i)
 {
-	int length = (int)(nd.sample() + 0.5);
+	int length = sampleLength();
 	long start = r.nextLong() % (maxLength - length);
 	if(start < 0) start += maxLength - length;
 	long end = start + length;
@@ -220,7 +240,7 @@ static double harmonicMean(double x, double y)
 }
 static void printReads(Scanner input, ArrayList<Pair> coords, PrintWriter out, PrintWriter genomeOut)
 {
-	int bufferLength = 50000;
+	int bufferLength = 500000;
 	Collections.sort(coords, new Comparator<Pair>() {
 		public int compare(Pair a, Pair b) {
 			
@@ -333,5 +353,426 @@ static class Pair implements Comparable<Pair>
 		if(a != o.a) return Long.compare(a, o.a);
 		return Long.compare(b, o.b);
 	}
+}
+/*
+ * Allows sampling from a discrete distribution given the counts of all elements in it
+ */
+static class Distribution
+{
+	int total;
+	TreeMap<Integer, Integer> invFrequency;
+	Random r;
+	Distribution(ReadUtils.OrderedFrequencyMap<Integer> ofm, int seed)
+	{
+		invFrequency = new TreeMap<Integer, Integer>();
+		int cFreq = 0;
+		for(int x : ofm.freq.keySet())
+		{
+			cFreq += ofm.count(x);
+			invFrequency.put(cFreq-1, x);
+		}
+		r = new Random(seed);
+		total = cFreq;
+	}
+	int sample()
+	{
+		int cur = r.nextInt(total);
+		return invFrequency.get(invFrequency.ceilingKey(cur));
+	}
+}
+static Distribution getDistribution(String fn) throws IOException
+{
+	ReadUtils.OrderedFrequencyMap<Integer> ofm = ReadUtils.getLengths(fn);
+	int seed = 171;
+	Distribution d = new Distribution(ofm, seed);
+	return d;
+}
+
+public static class ReadUtils {
+	static enum FileType {
+		EMPTY, FASTA, FASTQ;
+	};
+static void testGetLengths() throws IOException
+{
+	FileType[] fts = new FileType[] {FileType.FASTA, FileType.FASTQ, FileType.FASTA, FileType.FASTQ, FileType.FASTA};
+	int[][] lengths = new int[][] {
+		{10, 20, 30, 40, 50},
+		{10, 20, 30, 40, 50},
+		{4, 4, 4, 4, 3, 3, 3, 2, 2, 1},
+		{4, 4, 4, 4, 3, 3, 3, 2, 2, 1},
+		{100}
+	};
+	int numTests = fts.length;
+	for(int i = 0; i<numTests; i++)
+	{
+		boolean result = test(fts[i], lengths[i]);
+		System.out.println("TEST " + (i+1) + ": "+fts[i] + " " 
+				+ Arrays.toString(lengths[i]) + " " + (result ? "PASSED" : "FAILED"));
+	}
+}
+static boolean test(FileType ft, int[] lengths) throws IOException
+{
+	String fn = "test.txt";
+	File f = new File(fn);
+	PrintWriter out = new PrintWriter(f);
+	for(int i = 0; i<lengths.length; i++)
+	{
+		if(ft == FileType.FASTA)
+		{
+			int lineLength = 80;
+			out.println(">read"+(i+1));
+			String read = randomRead(lengths[i], i);
+			for(int j = 0; j+lineLength<lengths[i]; j+=lineLength)
+			{
+				out.println(read.substring(j, Math.min(lengths[i], j+lineLength)));
+			}
+		}
+		else
+		{
+			out.println(">read"+(i+1));
+			String read = randomRead(lengths[i], i);
+			out.println(read);
+			out.println("+");
+			for(int j = 0; j<lengths[i]; j++) out.print("*");
+			out.println();
+		}
+	}
+	out.close();
+	
+	OrderedFrequencyMap<Integer> myLengths = getLengths(fn);
+	OrderedFrequencyMap<Integer> trueLengths = getLengths(fn);
+	
+	f.delete();
+	
+	return myLengths.toString().equals(trueLengths.toString());
+}
+/*
+ * Generaets a random read of a fixed length for testing purposes
+ */
+static String randomRead(int length, int seed)
+{
+	char[] bases = new char[] {'A', 'C', 'G', 'T'};
+	Random r = new Random(seed);
+	char[] res = new char[length];
+	for(int i = 0; i<length; i++)
+	{
+		res[i] = bases[r.nextInt(bases.length)];
+	}
+	return new String(res);
+}
+/*
+ * Gets the multi-set of read lengths from a read file
+ */
+static OrderedFrequencyMap<Integer> getLengths(String fn) throws IOException
+{
+	OrderedFrequencyMap<Integer> res = new OrderedFrequencyMap<Integer>();
+	PeekableScanner  input = new PeekableScanner(new FileInputStream(new File(fn)));
+	FileType ft = getFileType(input);
+	if(ft == FileType.EMPTY)
+	{
+		return res;
+	}
+	while(true)
+	{
+		String curRead = getUnlabelledRead(input, ft);
+		if(curRead == null || curRead.length() == 0)
+		{
+			break;
+		}
+		if(curRead.length() > maxLength)
+		{
+			continue;
+		}
+		res.add(curRead.length());
+	}
+	return res;
+}
+public static String getName(PeekableScanner input, FileType ft)
+{
+	if(!input.hasNext())
+	{
+		return null;
+	}
+	if(ft == FileType.FASTQ)
+	{
+		String res = "";
+		for(int i = 0; i<4; i++)
+		{
+			if(!input.hasNext())
+			{
+				return null;
+			}
+			if(i == 0)
+			{
+				res = input.nextLine();
+				if(res.length() != 0)
+				{
+					res = res.substring(1);
+				}
+				else
+				{
+					res = null;
+				}
+			}
+			else
+			{
+				input.nextLine();
+			}
+		}
+		return res;
+	}
+	else if(ft == FileType.FASTA)
+	{
+		if(!input.hasNext())
+		{
+			return null;
+		}
+		String res = input.nextLine();
+		
+		if(res.length() != 0)
+		{
+			res =  res.substring(1);
+		}
+		else
+		{
+			res = null;
+		}
+		
+		while(input.hasNext())
+		{
+			String curLine = input.peekLine();
+			if(curLine.length() == 0 || curLine.startsWith(">"))
+			{
+				break;
+			}
+			input.nextLine();
+		}
+		
+		return res;
+	}
+	else
+	{
+		return null;
+	}
+}
+/*
+ * Scans the next read and returns its name and sequence
+ */
+static String[] getLabelledRead(PeekableScanner input, FileType ft)
+{
+	String[] res = new String[2];
+	if(!input.hasNext())
+	{
+		return null;
+	}
+	if(ft == FileType.FASTQ)
+	{
+		for(int i = 0; i<4; i++)
+		{
+			if(!input.hasNext())
+			{
+				return null;
+			}
+			if(i == 0) res[0] = input.nextLine();
+			else if(i == 1) res[1] = input.nextLine();
+			else input.nextLine();
+		}
+		if(res[0].length() == 0)
+		{
+			return null;
+		}
+		else
+		{
+			res[0] = res[0].substring(1);
+		}
+		return res;
+	}
+	else if(ft == FileType.FASTA)
+	{
+		if(!input.hasNext())
+		{
+			return null;
+		}
+		res[0] = input.nextLine();
+		
+		StringBuilder sb = new StringBuilder("");
+		
+		while(input.hasNext())
+		{
+			String curLine = input.peekLine();
+			if(curLine.length() == 0 || curLine.startsWith(">"))
+			{
+				break;
+			}
+			sb.append(input.nextLine());
+		}
+		
+		res[1] = sb.toString();
+		
+		if(res[0].length() == 0)
+		{
+			return null;
+		}
+		else
+		{
+			res[0] = res[0].substring(1);
+		}
+		
+		return res;
+	}
+	else
+	{
+		return null;
+	}
+}
+/*
+ * Scans the next read and returns the sequence associated with it
+ */
+static String getUnlabelledRead(PeekableScanner input, FileType ft)
+{
+	if(!input.hasNext())
+	{
+		return null;
+	}
+	if(ft == FileType.FASTQ)
+	{
+		String res = "";
+		for(int i = 0; i<4; i++)
+		{
+			if(!input.hasNext())
+			{
+				return null;
+			}
+			if(i == 1) res = input.nextLine();
+			else input.nextLine();
+		}
+		return res;
+	}
+	else if(ft == FileType.FASTA)
+	{
+		if(!input.hasNext())
+		{
+			return null;
+		}
+		input.nextLine();
+		
+		StringBuilder res = new StringBuilder("");
+		
+		while(input.hasNext())
+		{
+			String curLine = input.peekLine();
+			if(curLine.length() == 0 || curLine.startsWith(">"))
+			{
+				break;
+			}
+			res.append(input.nextLine());
+		}
+		
+		return res.toString();
+	}
+	else
+	{
+		return null;
+	}
+}
+/*
+ * Gets the filetype of a read file: fasta, fastq, or other/empty
+ */
+static FileType getFileType(PeekableScanner input) throws IOException
+{
+	if(!input.hasNext())
+	{
+		return FileType.EMPTY;
+	}
+	String line = input.peekLine();
+	if(line.startsWith(">"))
+	{
+		return FileType.FASTA;
+	}
+	else if(line.startsWith("@"))
+	{
+		return FileType.FASTQ;
+	}
+	else
+	{
+		return FileType.EMPTY;
+	}
+}
+/*
+ * Similar to a TreeSet but keeps a map from element to frequency instead
+ */
+static class OrderedFrequencyMap<T>
+{
+	TreeMap<T, Integer> freq;
+	OrderedFrequencyMap()
+	{
+		freq = new TreeMap<T, Integer>();
+	}
+	OrderedFrequencyMap(T[] data)
+	{
+		freq = new TreeMap<T, Integer>();
+		for(T x : data)
+		{
+			add(x);
+		}
+	}
+	void add(T x)
+	{
+		freq.put(x, freq.containsKey(x) ? (1 + freq.get(x)) : 1);
+	}
+	int count(T x)
+	{
+		return freq.containsKey(x) ? freq.get(x) : 0;
+	}
+	public String toString()
+	{
+		return freq.toString();
+	}
+}
+/*
+ * File scanner with the additional ability to peek at the next line
+ */
+static class PeekableScanner
+{
+	String lastLine;
+	boolean hasLastLine;
+	Scanner sc;
+	PeekableScanner(InputStream is)
+	{
+		sc = new Scanner(is);
+		hasLastLine = false;
+	}
+	String peekLine()
+	{
+		if(hasLastLine)
+		{
+			return lastLine;
+		}
+		else
+		{
+			lastLine = sc.nextLine();
+			hasLastLine = true;
+			return lastLine;
+		}
+	}
+	String nextLine()
+	{
+		if(hasLastLine)
+		{
+			hasLastLine = false;
+			String res = lastLine;
+			lastLine = null;
+			return res;
+		}
+		else
+		{
+			return sc.nextLine();
+		}
+	}
+	boolean hasNext()
+	{
+		return hasLastLine || sc.hasNext();
+	}
+}
 }
 }
