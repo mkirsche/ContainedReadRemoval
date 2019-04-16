@@ -734,7 +734,7 @@ static class Read implements Comparable<Read>
 				totCount += x[j+1];
 			}
 			
-			if(common > CONTAINMENT_THRESHOLD2 * totCount)
+			if(common > CONTAINMENT_THRESHOLD2 * totCount - 1e-9)
 			{
 				continue;
 			}

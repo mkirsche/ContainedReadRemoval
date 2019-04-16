@@ -22,6 +22,7 @@ public class SimulateReadsFromGenome {
 	static Random r;
 	static String outRefFn;
 	static  Distribution dist;
+	static String distType;
 public static void main(String[] args)  throws IOException
 {
 	genomeFn = "/home/mkirsche/2018_08_Crossdel/genome.fa";
@@ -71,6 +72,7 @@ static String coverageKey = "coverage";
 static String maxLengthKey = "maxlength";
 static String errorKey = "error";
 static String sampleKey = "sample";
+static String distKey = "dist";
 static int parseArgs(String[] args)
 {
 	if(args.length == 0)
@@ -134,6 +136,10 @@ static int parseArgs(String[] args)
 				errorRate /= 100;
 			}
 		}
+		else if(key.equals("distKey"))
+		{
+			distType = value;
+		}
 	}
 	
 	return 0;
@@ -150,6 +156,8 @@ static void help()
 	System.out.println("  " + coverageKey + ": coverage to simulate");
 	System.out.println("  " + maxLengthKey + ": maximum prefix of genome to simulate from");
 	System.out.println("  " + errorRate + ": error rate of reads relative to the reference");
+	System.out.println("  " + sampleKey + ": file to draw sample reads from to use a real distribution");
+	System.out.println("  " + distKey + ": the distribution to draw reads from if no sample specified (normal)");
 }
 static ArrayList<Pair> simulatePositions()
 {
