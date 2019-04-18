@@ -23,12 +23,14 @@ public class SimulateReadsFromGenome {
 	static String outRefFn;
 	static  Distribution dist;
 	static String distType;
+	static String intervalOfn;
 public static void main(String[] args)  throws IOException
 {
 	genomeFn = "/home/mkirsche/2018_08_Crossdel/genome.fa";
 	readOfn = "simulatedreads.fa";
 	scoreOfn = "simulatedscores.txt";
 	outRefFn = "simulatedgenome.txt";
+	intervalOfn = "simulatedintervals.txt";
 	sampleFn = "";
 	
 	int argParseErrorKey = parseArgs(args);
@@ -46,9 +48,10 @@ public static void main(String[] args)  throws IOException
 	PrintWriter readOut = new PrintWriter(new File(readOfn));
 	PrintWriter scoreOut = new PrintWriter(new File(scoreOfn));
 	PrintWriter genomeOut = new PrintWriter(new File(outRefFn));
+	PrintWriter intervalOut = new PrintWriter(new File(intervalOfn));
 	
 	nd = new NormalDistribution(mean, stdev);
-	r = new Random();
+	r = new Random(333);
 	
 	ArrayList<Pair> coords = simulatePositions();
 	System.err.println("Simulated " + coords.size() + " reads");
@@ -56,18 +59,26 @@ public static void main(String[] args)  throws IOException
 	System.err.println("Printing reads");
 	printReads(input, coords, readOut, genomeOut);
 	
+	System.err.println("Printing intervals");
+	for(int i = 0; i<coords.size(); i++)
+	{
+		intervalOut.println(getName(coords.get(i).i)+" "+coords.get(i).a+" "+coords.get(i).b);
+	}
+	
 	System.err.println("Computing scores");
 	printContainmentScores(coords, scoreOut);
 	
 	genomeOut.close();
 	scoreOut.close();
 	readOut.close();
+	intervalOut.close();
 }
 static String meanKey = "mean";
 static String stdevKey = "stdev";
 static String genomeKey = "genomefile";
 static String readKey = "readfile";
 static String scoreKey = "scorefile";
+static String intervalKey = "intervalfile";
 static String coverageKey = "coverage";
 static String maxLengthKey = "maxlength";
 static String errorKey = "error";
@@ -107,6 +118,10 @@ static int parseArgs(String[] args)
 		else if(key.equals(scoreKey))
 		{
 			scoreOfn = value;
+		}
+		else if(key.equals(intervalKey))
+		{
+			intervalOfn = value;
 		}
 		else if(key.equals(sampleKey))
 		{
@@ -151,6 +166,7 @@ static void help()
 	System.out.println("  " + genomeKey + ": fasta file with genome to simulate from");
 	System.out.println("  " + readKey + ": file name to output reads to");
 	System.out.println("  " + scoreKey + ": file name to output containment scores to");
+	System.out.println("  " + intervalKey + ": file name to output read intervals to to");
 	System.out.println("  " + meanKey + ": average read length");
 	System.out.println("  " + stdevKey + ": standard deviation of read length");
 	System.out.println("  " + coverageKey + ": coverage to simulate");
@@ -233,6 +249,8 @@ static void printContainmentScores(ArrayList<Pair> coords, PrintWriter out)
 		int score = maxContainmentScore >= 0 ? maxContainmentScore : -minOverhang;
 		coords.get(i).score = score;
 		out.print(score+" ");
+		out.print(coords.get(i).a+" ");
+		out.print(coords.get(i).b+" ");
 		out.println(getName(coords.get(bestContaining).i));
 	}
 }

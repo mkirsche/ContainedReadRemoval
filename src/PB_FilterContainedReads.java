@@ -25,6 +25,7 @@ public class PB_FilterContainedReads {
 	 */
 	static double CONTAINMENT_THRESHOLD = 0.25;
 	static double CONTAINMENT_THRESHOLD2 = 0.25;
+	static double REPEAT_THRESHOLD = 0.25;
 	
 	/*
 	 * The sketch parameter for making an initial pass for speeding up the algorithm
@@ -45,7 +46,7 @@ public class PB_FilterContainedReads {
 	/*
 	 * The maximum number of reads to consider for containment
 	 */
-	static int LIMIT = 5;
+	static int LIMIT = 15;
 	
 	/*
 	 * Input and output filenames
@@ -279,6 +280,7 @@ static void parseArgs(String[] args)
 		System.out.println("  ct=[containment_threshold (float)]");
 		System.out.println("  ct2=[containment_threshold2 (float)]");
 		System.out.println("  ofn=[output filename (string)]");
+		System.out.println("  rt=[repeat threshold (float)]");
 		System.out.println("  fnonly");
 	}
 	fn = args[0];
@@ -313,6 +315,11 @@ static void parseArgs(String[] args)
 		{
 			CONTAINMENT_THRESHOLD2 = Double.parseDouble(args[i].substring(1 + args[i].indexOf('=')));
 			if(CONTAINMENT_THRESHOLD2 > 1) CONTAINMENT_THRESHOLD2 *= 0.01; // handle ct given as percent
+		}
+		else if(args[i].startsWith("rt="))
+		{
+			REPEAT_THRESHOLD = Double.parseDouble(args[i].substring(1 + args[i].indexOf('=')));
+			if(REPEAT_THRESHOLD > 1) REPEAT_THRESHOLD *= 0.01; // handle ct given as percent
 		}
 		else if(args[i].startsWith("ofn="))
 		{
@@ -349,9 +356,17 @@ static void process(int i) throws Exception
 		return;
 	}
 	
+	if(rs.get(i).repeats)
+	{
+		debugLines[i] = rs.get(i).name + " 0.0 " + " 0.0 " + " 0.0 " + rs.get(i).len;
+		contained[i] = false;
+		return;
+	}
+	
 	// Find reads with shared (k2, w2) minimizer and add them to set of candidates
 	for(long x : rs.get(i).ms2)
 	{
+		if(rs.get(i).repeats) break;
 		if(!map.containsKey(x)) continue;
 		if(map.get(x).size() == LIMIT)
 		{
@@ -642,6 +657,8 @@ static class Read implements Comparable<Read>
 	// The length of the read (bp)
 	int len;
 	
+	boolean repeats;
+	
 	// The content of the read, which is removed once sketches are built
 	String line;
 	
@@ -659,6 +676,24 @@ static class Read implements Comparable<Read>
 		line = line.toUpperCase();
 		long[][] k1w1Mini = getWindowMinimizers(line, K1, W1);	
 		ms = k1w1Mini[0];
+		int repeatCount = 0, totCount = 0;
+		for(int i = 1; i<ms.length; i+=2)
+		{
+			totCount += ms[i];
+			if(ms[i] > 10)
+			{
+				repeatCount += ms[i];
+				ms[i] = 1;
+			}
+		}
+		if(repeatCount > REPEAT_THRESHOLD * totCount)
+		{
+			repeats = true;
+		}
+		if(repeatCount > REPEAT_THRESHOLD * totCount)
+		{
+			System.out.println("Repeat read: " +name+" with repetitiveness "+1.0 * repeatCount / totCount + " (needed " + REPEAT_THRESHOLD + ")");
+		}
 		starts = k1w1Mini[1];
 		ends = k1w1Mini[2];
 		long[][] k2w2Mini = getWindowMinimizers(line, K2, W2);
@@ -748,6 +783,20 @@ static class Read implements Comparable<Read>
 		}
 		
 		return good;
+	}
+	
+	void print(long val)
+	{
+		char[] cs = new char[] {'A', 'C', 'G', 'T'};
+		char[] res = new char[K1], res2 = new char[K1];
+		for(int i = 0; i<K1; i++)
+		{
+			res[res.length-1-i] = cs[(int)(val%4)];
+			res2[i] = cs[(int)(val%4) ^ 3];
+			val  /= 4;
+		}
+		System.out.println(new String(res));
+		System.out.println(new String(res2));
 	}
 	
 	double[] containmentScore(Read r)
