@@ -520,7 +520,7 @@ static void generateOutputFilename()
 static long[][] getWindowMinimizers(String s, int K, int W)
 {
 	// String too short for any windows - return empty list
-	if(s.length() <= K + W) return  new long[][] {{},{}};
+	if(s.length() <= K + W) return  new long[][] {{},{}, {}};
 	
 	// Set to hold minimizers
 	TreeMap<Long, Integer> kmers = new TreeMap<Long, Integer>();
