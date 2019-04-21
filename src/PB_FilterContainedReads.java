@@ -25,6 +25,7 @@ public class PB_FilterContainedReads {
 	 */
 	static double CONTAINMENT_THRESHOLD = 0.25;
 	static double CONTAINMENT_THRESHOLD2 = 0.25;
+	static boolean setCt2 = false;
 	static double REPEAT_THRESHOLD = 0.25;
 	
 	/*
@@ -46,7 +47,7 @@ public class PB_FilterContainedReads {
 	/*
 	 * The maximum number of reads to consider for containment
 	 */
-	static int LIMIT = 15;
+	static int LIMIT = 50;
 	
 	/*
 	 * Input and output filenames
@@ -93,6 +94,15 @@ public class PB_FilterContainedReads {
 	 */
 	static String debugFn = "containment_debug.txt";
 	static String[] debugLines;
+	
+	/*
+	 * Possible filtering methods
+	 */
+	static enum FilterMethod {
+			THRESHOLD, ADAPTIVE_THRESHOLD, RECTANGLE
+	};
+	
+	static FilterMethod method = FilterMethod.ADAPTIVE_THRESHOLD;
 	
 @SuppressWarnings("resource")
 public static void main(String[] args) throws Exception
@@ -279,8 +289,10 @@ static void parseArgs(String[] args)
 		System.out.println("  w2=[w2 (int)]");
 		System.out.println("  ct=[containment_threshold (float)]");
 		System.out.println("  ct2=[containment_threshold2 (float)]");
+		System.out.println("  lf=[length_filter (int)]");
 		System.out.println("  ofn=[output filename (string)]");
 		System.out.println("  rt=[repeat threshold (float)]");
+		System.out.println("  method=[filtering method (THRESHOLD, ADAPTIVE_THRESHOLD, or RECTANGLE)]");
 		System.out.println("  fnonly");
 	}
 	fn = args[0];
@@ -313,6 +325,7 @@ static void parseArgs(String[] args)
 		}
 		else if(args[i].startsWith("ct2="))
 		{
+			setCt2 = true;
 			CONTAINMENT_THRESHOLD2 = Double.parseDouble(args[i].substring(1 + args[i].indexOf('=')));
 			if(CONTAINMENT_THRESHOLD2 > 1) CONTAINMENT_THRESHOLD2 *= 0.01; // handle ct given as percent
 		}
@@ -329,6 +342,30 @@ static void parseArgs(String[] args)
 		{
 			fnOnly = true;
 		}
+		else if(args[i].startsWith("method="))
+		{
+			String type = args[i].substring(1+args[i].indexOf('=')).toUpperCase();
+			if(type.equals("THRESHOLD"))
+			{
+				method = FilterMethod.THRESHOLD;
+			}
+			else if(type.equals("ADAPTIVE_THRESHOLD"))
+			{
+				method = FilterMethod.ADAPTIVE_THRESHOLD;
+			}
+			else if(type.equals("RECTANGLE"))
+			{
+				method = FilterMethod.RECTANGLE;
+			}
+		}
+		else if(args[i].startsWith("lf="))
+		{
+			LENGTH_FILTER = Integer.parseInt(args[i].substring(1 + args[i].indexOf('=')));
+		}
+	}
+	if(!setCt2)
+	{
+		CONTAINMENT_THRESHOLD2 = CONTAINMENT_THRESHOLD;
 	}
 }
 /*
@@ -704,85 +741,53 @@ static class Read implements Comparable<Read>
 	// Check if this read contains another read based on shared proportion of primary sketch
 	boolean contains(Read r)
 	{
-		int common = 0, n = ms.length, m = r.ms.length;
-		int i = 0, j = 0;
-		while(i < n && j < m)
+		double[] containmentScores = this.containmentScore(r);
+		double[] thresholds = new double[] {CONTAINMENT_THRESHOLD, CONTAINMENT_THRESHOLD2, CONTAINMENT_THRESHOLD2};
+		if(method == FilterMethod.THRESHOLD)
 		{
-			long a = ms[i], b = r.ms[j];
-			if(a < b) i+=2;
-			else if(a > b) j+=2;
-			else
+			for(int i = 0; i<containmentScores.length; i++)
 			{
-				common+=Math.min(ms[i+1], r.ms[j+1]);
-				i+=2;
-				j+=2;
+				if(containmentScores[i] < thresholds[i] - 1e-9)
+				{
+					return false;
+				}
 			}
+			return true;
 		}
-		
-		int totCount = 0;
-		for(j = 0; j<m; j += 2)
+		else if(method == FilterMethod.ADAPTIVE_THRESHOLD)
 		{
-			totCount += r.ms[j+1];
+			for(int i = 0; i<containmentScores.length; i++)
+			{
+				if(containmentScores[i] < thresholds[i] - 1e-9 && r.len >= LENGTH_FILTER)
+				{
+					return false;
+				}
+				else if(containmentScores[i] < thresholds[i] * .5 - 1e-9)
+				{
+					return false;
+				}
+			}
+			return true;
 		}
-		
-		boolean ctPassed = false;
-		
-		if(common > CONTAINMENT_THRESHOLD * totCount - 1e-9)
+		else if(method == FilterMethod.RECTANGLE)
 		{
-			ctPassed = true;
+			if(r.len < LENGTH_FILTER)
+			{
+				return true;
+			}
+			for(int i = 0; i<3; i++)
+			{
+				if(containmentScores[i] < thresholds[i] - 1e-9)
+				{
+					return false;
+				}
+			}
+			return true;
 		}
-		else if(r.len < LENGTH_FILTER && common > .5 * CONTAINMENT_THRESHOLD * totCount - 1e-9)
-		{
-			ctPassed = true;
-		}
-		
-		if(!ctPassed)
+		else
 		{
 			return false;
 		}
-		
-		boolean good = true;
-		
-		for(long[] x : new long[][]{r.starts, r.ends})
-		{
-		
-			common = 0;
-			n = ms.length;
-			m = x.length;
-			i = j = 0;
-			while(i < n && j < m)
-			{
-				long a = ms[i], b = x[j];
-				if(a < b) i+=2;
-				else if(a > b) j+=2;
-				else
-				{
-					common+=Math.min(ms[i+1], x[j+1]);
-					i+=2;
-					j+=2;
-				}
-			}
-			
-			totCount = 0;
-			for(j = 0; j<m; j += 2)
-			{
-				totCount += x[j+1];
-			}
-			
-			if(common > CONTAINMENT_THRESHOLD2 * totCount - 1e-9)
-			{
-				continue;
-			}
-			
-			else if(r.len < LENGTH_FILTER && common > .5 * CONTAINMENT_THRESHOLD2 * totCount - 1e-9)
-			{
-				continue;
-			}
-			
-			good = false;
-		}
-		
-		return good;
 	}
 	
 	void print(long val)
