@@ -6,3 +6,5 @@ javac src/*.java; time java -cp src PB_FilterContainedReads ../ERR2173373.fastq 
 java -cp /home-3/mkirsche@jhu.edu/hashing/CCS/src ExtractReads /home-3/mkirsche@jhu.edu/hashing/CCS/results/$name.txt /home-3/mkirsche@jhu.edu/hashing/ERR2173373.fastq
 
 /home-3/mkirsche@jhu.edu/hashing/CCS/src/assemble.sh -r /home-3/mkirsche@jhu.edu/hashing/CCS/results/$name.txt.fastq -o fuzzy_$name
+
+java -cp /home-3/mkirsche@jhu.edu/hashing/CCS/assembly_eval AssemblyStats wtdbg2_assemblies/$name.txt.fastq.ctg.lay.fa
