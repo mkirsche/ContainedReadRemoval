@@ -291,6 +291,7 @@ static void parseArgs(String[] args)
 		System.out.println("  ct2=[containment_threshold2 (float)]");
 		System.out.println("  lf=[length_filter (int)]");
 		System.out.println("  ofn=[output filename (string)]");
+		System.out.println("  dfn=[debug filename (string)]");
 		System.out.println("  rt=[repeat threshold (float)]");
 		System.out.println("  method=[filtering method (THRESHOLD, ADAPTIVE_THRESHOLD, or RECTANGLE)]");
 		System.out.println("  fnonly");
@@ -337,6 +338,10 @@ static void parseArgs(String[] args)
 		else if(args[i].startsWith("ofn="))
 		{
 			ofn = args[i].substring(1 + args[i].indexOf('='));
+		}
+		else if(args[i].startsWith("dfn="))
+		{
+			debugFn = args[i].substring(1 + args[i].indexOf('='));
 		}
 		else if(args[i].equals("fnonly"))
 		{
