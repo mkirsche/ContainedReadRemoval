@@ -175,7 +175,7 @@ public static void main(String[] args) throws Exception
 			}
 			
 			// Add read to read list
-			String name = input.readLine(), read = input.readLine();
+			String name = input.readLine().split(" ")[0], read = input.readLine();
 			if(name.startsWith(">"))
 			{
 				fastq = false;
