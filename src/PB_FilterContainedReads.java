@@ -398,7 +398,7 @@ static void process(int i) throws Exception
 		return;
 	}
 	
-	if(rs.get(i).repeats)
+	if(rs.get(i).repeats && rs.get(i).len > LENGTH_FILTER)
 	{
 		debugLines[i] = rs.get(i).name + " 0.0 " + " 0.0 " + " 0.0 " + rs.get(i).len;
 		contained[i] = false;
