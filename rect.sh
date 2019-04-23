@@ -7,4 +7,5 @@ java -cp /home-3/mkirsche@jhu.edu/hashing/CCS/src ExtractReads /home-3/mkirsche@
 
 /home-3/mkirsche@jhu.edu/hashing/CCS/src/assemble.sh -r /home-3/mkirsche@jhu.edu/hashing/CCS/results/$name.txt.fastq -o fuzzy_$name
 
-java -cp /home-3/mkirsche@jhu.edu/hashing/CCS/assembly_eval AssemblyStats wtdbg2_assemblies/$name.txt.fastq.ctg.lay.fa
+java -cp /home-3/mkirsche@jhu.edu/hashing/CCS/assembly_eval AssemblyStats wtdbg2_assemblies/$name.txt.fastq.ctg.lay.fa | tee fuzzy_$name.stats
+
