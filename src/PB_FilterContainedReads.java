@@ -175,7 +175,7 @@ public static void main(String[] args) throws Exception
 			}
 			
 			// Add read to read list
-			String name = input.readLine().split(" ")[0], read = input.readLine();
+			String name = input.readLine(), read = input.readLine();
 			if(name.startsWith(">"))
 			{
 				fastq = false;
@@ -381,7 +381,7 @@ static void process(int i) throws Exception
 	int done = processed.incrementAndGet();
 	if(done%1000 == 0) System.err.println("Processed " + done + " reads");
 	
-	debugLines[i] = rs.get(i).name + " 1.0 " + " 1.0 " + " 1.0 " + rs.get(i).len;
+	debugLines[i] = rs.get(i).name.split(" ")[0] + " 1.0 " + " 1.0 " + " 1.0 " + rs.get(i).len;
 	
 	// Set of other reads to check
 	HashSet<Integer> check = new HashSet<Integer>();
