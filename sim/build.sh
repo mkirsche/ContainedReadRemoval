@@ -8,6 +8,6 @@ java -cp "$BINDIR:$BINDIR/commons-math3-3.6.1.jar" SimulateReadsFromGenome cover
 #java -cp "$BINDIR:$BINDIR/commons-math3-3.6.1.jar" SimulateReadsFromGenome coverage=30 maxLength=5000000 error=0.12
 
 javac ../src/*.java
-java -cp ../src PB_FilterContainedReads simulatedreads.fa nt=2 ct=.025 w1=5 ofn=uncontained.txt k1=15 rt=.1 lf=22000 method=rectangle
+java -cp ../src PB_FilterContainedReads simulatedreads.fa nt=2 ct=.015 w1=5 ofn=uncontained.txt k1=15 rt=.1 lf=15000 method=rectangle
 
 #java -cp ../src PB_FilterContainedReads simulatedreads.fa nt=2 ct=.21 ct2=.21 w1=5 ofn=uncontained.txt k1=15 rt=.4

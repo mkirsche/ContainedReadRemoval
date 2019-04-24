@@ -180,7 +180,7 @@ public static void main(String[] args) throws Exception
 			{
 				fastq = false;
 			}	
-			rs.add(new Read(name, read));
+			rs.add(new Read(name.split(" ")[0], read));
 			if(fastq)
 			{	
 				input.readLine();
@@ -522,7 +522,7 @@ static void generateOutputFilename()
 /*
  * Computes the (K, W) minimizers of a string s
  */
-static long[][] getWindowMinimizers(String s, int K, int W)
+static long[][] getWindowMinimizers(String s, int K, int W, int endThreshold)
 {
 	// String too short for any windows - return empty list
 	if(s.length() <= K + W) return  new long[][] {{},{}, {}};
@@ -531,9 +531,7 @@ static long[][] getWindowMinimizers(String s, int K, int W)
 	TreeMap<Long, Integer> kmers = new TreeMap<Long, Integer>();
 	TreeMap<Long, Integer> startKmers = new TreeMap<Long, Integer>();
 	TreeMap<Long, Integer> endKmers = new TreeMap<Long, Integer>();
-	
-	int endThreshold = 500;
-	
+		
 	// Current values of kmer and reverse complement
 	long[] ks = new long[2];
 	
@@ -696,6 +694,8 @@ static class Read implements Comparable<Read>
 	// The sketches around the ends of the read
 	long[] starts;
 	long[] ends;
+	long[] starts2;
+	long[] ends2;
 	
 	// The length of the read (bp)
 	int len;
@@ -717,7 +717,7 @@ static class Read implements Comparable<Read>
 	void init()
 	{
 		line = line.toUpperCase();
-		long[][] k1w1Mini = getWindowMinimizers(line, K1, W1);	
+		long[][] k1w1Mini = getWindowMinimizers(line, K1, W1, 500);	
 		ms = k1w1Mini[0];
 		int repeatCount = 0, totCount = 0;
 		for(int i = 1; i<ms.length; i+=2)
@@ -737,9 +737,12 @@ static class Read implements Comparable<Read>
 		{
 			System.out.println("Repeat read: " +name+" with repetitiveness "+1.0 * repeatCount / totCount + " (needed " + REPEAT_THRESHOLD + ")");
 		}
+		long[][] k1Mini = getWindowMinimizers(line, K1, 1, 100);
+		starts2 = k1Mini[1];
+		ends2 = k1Mini[2];
 		starts = k1w1Mini[1];
 		ends = k1w1Mini[2];
-		long[][] k2w2Mini = getWindowMinimizers(line, K2, W2);
+		long[][] k2w2Mini = getWindowMinimizers(line, K2, W2, 500);
 		ms2 = everyOther(k2w2Mini[0]);
 		line = null;
 	}
@@ -781,18 +784,107 @@ static class Read implements Comparable<Read>
 			{
 				return true;
 			}
+			boolean lessThanDouble = true;
 			for(int i = 0; i<3; i++)
 			{
 				if(containmentScores[i] < thresholds[i] - 1e-9)
 				{
 					return false;
 				}
+				else
+				{
+					lessThanDouble &= containmentScores[i] < 2 * thresholds[i] - 1e-9;
+				}
 			}
-			return true;
+			if(lessThanDouble)
+			{
+				// Check for off-by-one in ends
+				for(int i = 1; i<3; i++)
+				{
+					long[] kmers = i == 1 ? r.starts2 : r.ends2;
+					double cur = compareErrorKmers(kmers, ms, K1);
+					System.out.println(cur);
+					if(cur < thresholds[i] * 2 - 1e-9)
+					{
+						return false;
+					}
+				}
+				return true;
+			}
+			else
+			{
+				return true;
+			}
 		}
 		else
 		{
 			return false;
+		}
+	}
+	
+	static double compareErrorKmers(long[] error, long[] database, int k)
+	{
+		ArrayList<IndexedKmer> errored = new ArrayList<IndexedKmer>();
+		for(int index = 0; index < error.length; index+=2)
+		{
+			long e = error[index];
+			int count = (int)error[index+1];
+			for(int i = 0; i<k; i++)
+			{
+				for(int newBase = 0; newBase < 4; newBase++)
+				{
+					long newHash = e;
+					long sub = e & (3L << (2*i));
+					long add = newBase << (2*i);
+					if(sub == add)
+					{
+						continue;
+					}
+					errored.add(new IndexedKmer(newHash+add-sub, count, index/2));
+				}
+			}
+		}
+		Collections.sort(errored);
+		int n = errored.size(), m = database.length, i = 0, j = 0;
+		long[] count = new long[error.length/2];
+		int common = 0, totCount = 0;
+		while(i < n && j < m)
+		{
+			long a = errored.get(i).kmer, b = database[j];
+			if(a < b) i++;
+			else if(a > b) j+=2;
+			else
+			{
+				count[errored.get(i).index] += Math.min(errored.get(i).count, database[j+1]);
+				i++;
+			}
+		}
+		
+		for(i = 1; i<error.length; i+=2)
+		{
+			totCount += error[i];
+		}
+		for(i = 0; i<count.length; i++)
+		{
+			common += count[i];
+		}
+		return 1.0 * common / totCount;
+	}
+	
+	static class IndexedKmer implements Comparable<IndexedKmer>
+	{
+		long kmer;
+		int index;
+		int count;
+		IndexedKmer(long kk, int cc, int ii)
+		{
+			kmer = kk; index = ii; count = cc;
+		}
+		@Override
+		public int compareTo(IndexedKmer o) {
+			// TODO Auto-generated method stub
+			if(kmer != o.kmer) return Long.compare(kmer, o.kmer);
+			return index - o.index;
 		}
 	}
 	
