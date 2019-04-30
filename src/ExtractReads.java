@@ -3,8 +3,8 @@ import java.io.*;
 public class ExtractReads {
 public static void main(String[] args) throws IOException
 {
-	String fn = "/home/mkirsche/ccs/chr22.fastq.uncontained_hash.8_10_0.95";
-	String readsFn = "/home/mkirsche/ccs/chr22.fastq";
+	String fn = "ERR2173373.fastq.8.14.5.500.10";
+	String readsFn = "ERR2173373.fastq";
 	if(args.length > 0)
 	{
 		if(args.length == 1)
@@ -18,9 +18,12 @@ public static void main(String[] args) throws IOException
 		}
 	}
 	Scanner input = new Scanner(new FileInputStream(new File(fn)));
-	boolean fastq = readsFn.contains("fastq") || readsFn.contains("fq");
+	boolean fastq = fn.contains("fastq") || fn.contains("fq");
 	HashSet<String> rs = new HashSet<String>();
-	while(input.hasNext()) rs.add(input.nextLine());
+	while(input.hasNext())
+	{
+		rs.add(input.nextLine().split(" ")[0]);
+	}
 	int linesPer = fastq ? 4 : 2;
 	String[] buf = new String[linesPer];
 	BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(readsFn)));
@@ -34,7 +37,7 @@ public static void main(String[] args) throws IOException
 		try
 		{
 			for(int i = 0; i<linesPer; i++) buf[i] = in.readLine();
-			if(rs.contains(buf[0].substring(1)))
+			if(rs.contains(buf[0].split(" ")[0].substring(1)))
 			{
 				count++;
 				for(int i = 0; i<linesPer; i++) out.println(buf[i]);
@@ -46,6 +49,6 @@ public static void main(String[] args) throws IOException
 		}
 	}
 	out.close();
-	System.err.println(count);
+	System.out.println(count);
 }
 }
