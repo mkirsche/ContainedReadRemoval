@@ -15,4 +15,6 @@ runs/
 *.paf
 */*.cov.txt
 */*.fa
-
+data/*
+debug/*
+docs/*

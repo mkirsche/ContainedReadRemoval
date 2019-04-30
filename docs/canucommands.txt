@@ -1,3 +1,0 @@
-time canu-1.8/*/bin/canu -assemble -d 'canu_'final -p reads genomeSize=3g -useGrid=false -stopOnLowCoverage=1 -pacbio-corrected reads.fasta.uncontained_hash.8_20_0.90_-3.fastq | tee canu_final.log
-
-time canu-1.8/*/bin/canu -assemble -d 'canu_'all -p reads genomeSize=3g -useGrid=false -stopOnLowCoverage=1 -pacbio-corrected reads.fasta | tee canu_all.log
