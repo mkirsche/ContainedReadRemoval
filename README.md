@@ -2,18 +2,17 @@
 
 Faster Assemblies with Minimizer-Based Removal of Contained Reads
 
+## Running the filter:
+
 To run the filter, use the executable rect.sh in this directory.
 
 ./rect.sh <len_filter> <shared_minimizer_filter> <output_prefix>
-
-
 
 ## Parameters:
 
 len_filter is the length threshold L such that all reads with length less than L are removed
 
 shared_minimizer_filter is the threshold proportion of shared minimizers such that if a read has that many shared kmers with some other read (both overall and in its ends), the read is removed
-
 
 ## Description of the directories:
 
