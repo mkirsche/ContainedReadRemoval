@@ -803,7 +803,6 @@ static class Read implements Comparable<Read>
 				{
 					long[] kmers = i == 1 ? r.starts2 : r.ends2;
 					double cur = compareErrorKmers(kmers, ms, K1);
-					System.out.println(cur);
 					if(cur < thresholds[i] * 2 - 1e-9)
 					{
 						return false;
