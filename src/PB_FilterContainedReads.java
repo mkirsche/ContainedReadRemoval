@@ -180,7 +180,7 @@ public static void main(String[] args) throws Exception
 			{
 				fastq = false;
 			}	
-			rs.add(new Read(name.split(" ")[0], read));
+			rs.add(new Read(name, read));
 			if(fastq)
 			{	
 				input.readLine();
@@ -381,7 +381,7 @@ static void process(int i) throws Exception
 	int done = processed.incrementAndGet();
 	if(done%1000 == 0) System.err.println("Processed " + done + " reads");
 	
-	debugLines[i] = rs.get(i).name.split(" ")[0] + " 1.0 " + " 1.0 " + " 1.0 " + rs.get(i).len;
+	debugLines[i] = rs.get(i).name + " 1.0 " + " 1.0 " + " 1.0 " + rs.get(i).len;
 	
 	// Set of other reads to check
 	HashSet<Integer> check = new HashSet<Integer>();

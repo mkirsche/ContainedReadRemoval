@@ -22,7 +22,7 @@ public static void main(String[] args) throws IOException
 	HashSet<String> rs = new HashSet<String>();
 	while(input.hasNext())
 	{
-		rs.add(input.nextLine().split(" ")[0]);
+		rs.add(input.nextLine());
 	}
 	int linesPer = fastq ? 4 : 2;
 	String[] buf = new String[linesPer];
@@ -37,7 +37,7 @@ public static void main(String[] args) throws IOException
 		try
 		{
 			for(int i = 0; i<linesPer; i++) buf[i] = in.readLine();
-			if(rs.contains(buf[0].split(" ")[0].substring(1)))
+			if(rs.contains(buf[0].substring(1)))
 			{
 				count++;
 				for(int i = 0; i<linesPer; i++) out.println(buf[i]);
