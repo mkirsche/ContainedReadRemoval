@@ -27,6 +27,12 @@ public class PB_FilterContainedReads {
 	static double CONTAINMENT_THRESHOLD2 = 0.25;
 	static boolean setCt2 = false;
 	static double REPEAT_THRESHOLD = 0.25;
+	static double ERROR_THRESHOLD = 0.3;
+	
+	/*
+	 * Whether or not to run in logging mode, which calculates and outputs all info rather than breaking early
+	 */
+	static boolean logging = false;
 	
 	/*
 	 * The sketch parameter for making an initial pass for speeding up the algorithm
@@ -289,12 +295,14 @@ static void parseArgs(String[] args)
 		System.out.println("  w2=[w2 (int)]");
 		System.out.println("  ct=[containment_threshold (float)]");
 		System.out.println("  ct2=[containment_threshold2 (float)]");
+		System.out.println("  et=[error_threshold (float)]");
 		System.out.println("  lf=[length_filter (int)]");
 		System.out.println("  ofn=[output filename (string)]");
 		System.out.println("  dfn=[debug filename (string)]");
 		System.out.println("  rt=[repeat threshold (float)]");
 		System.out.println("  method=[filtering method (THRESHOLD, ADAPTIVE_THRESHOLD, or RECTANGLE)]");
 		System.out.println("  fnonly");
+		System.out.println("  logging");
 	}
 	fn = args[0];
 	for(int i = 1; i<args.length; i++)
@@ -324,16 +332,21 @@ static void parseArgs(String[] args)
 			CONTAINMENT_THRESHOLD = Double.parseDouble(args[i].substring(1 + args[i].indexOf('=')));
 			if(CONTAINMENT_THRESHOLD > 1) CONTAINMENT_THRESHOLD *= 0.01; // handle ct given as percent
 		}
+		else if(args[i].startsWith("et="))
+		{
+			ERROR_THRESHOLD = Double.parseDouble(args[i].substring(1 + args[i].indexOf('=')));
+			if(ERROR_THRESHOLD > 1) ERROR_THRESHOLD *= 0.01; // handle et given as percent
+		}
 		else if(args[i].startsWith("ct2="))
 		{
 			setCt2 = true;
 			CONTAINMENT_THRESHOLD2 = Double.parseDouble(args[i].substring(1 + args[i].indexOf('=')));
-			if(CONTAINMENT_THRESHOLD2 > 1) CONTAINMENT_THRESHOLD2 *= 0.01; // handle ct given as percent
+			if(CONTAINMENT_THRESHOLD2 > 1) CONTAINMENT_THRESHOLD2 *= 0.01; // handle ct2 given as percent
 		}
 		else if(args[i].startsWith("rt="))
 		{
 			REPEAT_THRESHOLD = Double.parseDouble(args[i].substring(1 + args[i].indexOf('=')));
-			if(REPEAT_THRESHOLD > 1) REPEAT_THRESHOLD *= 0.01; // handle ct given as percent
+			if(REPEAT_THRESHOLD > 1) REPEAT_THRESHOLD *= 0.01; // handle rt given as percent
 		}
 		else if(args[i].startsWith("ofn="))
 		{
@@ -346,6 +359,10 @@ static void parseArgs(String[] args)
 		else if(args[i].equals("fnonly"))
 		{
 			fnOnly = true;
+		}
+		else if(args[i].equals("logging"))
+		{
+			logging = true;
 		}
 		else if(args[i].startsWith("method="))
 		{
@@ -381,7 +398,7 @@ static void process(int i) throws Exception
 	int done = processed.incrementAndGet();
 	if(done%1000 == 0) System.err.println("Processed " + done + " reads");
 	
-	debugLines[i] = rs.get(i).name + " 1.0 " + " 1.0 " + " 1.0 " + rs.get(i).len;
+	debugLines[i] = rs.get(i).name + " " + rs.get(i).len + " 1.0 1.0 1.0 1.0 1.0";
 	
 	// Set of other reads to check
 	HashSet<Integer> check = new HashSet<Integer>();
@@ -400,7 +417,7 @@ static void process(int i) throws Exception
 	
 	if(rs.get(i).repeats && rs.get(i).len > LENGTH_FILTER)
 	{
-		debugLines[i] = rs.get(i).name + " 0.0 " + " 0.0 " + " 0.0 " + rs.get(i).len;
+		debugLines[i] = rs.get(i).name + " " + rs.get(i).len + " 0.0 0.0 0.0 0.0 0.0";
 		contained[i] = false;
 		return;
 	}
@@ -422,41 +439,47 @@ static void process(int i) throws Exception
 	}
 	
 	double maxContainment = 0.0;
-	double[] maxEdges = new double[] {0, 0};
 	int bestIdx = -1;
 	boolean foundContained = false;
+	
+	ArrayList<Double> maxEdges = new ArrayList<Double>();
 	
 	// Check if any of the candidates contain this read
 	for(int j : check)
 	{
 		if(i == j) continue;
-		double[] score =  rs.get(j).containmentScore(rs.get(i));
-		if(score[0] > maxContainment)
-		{
-			if(!foundContained)
-			{
-				bestIdx = j;
-				maxContainment = score[0];
-				maxEdges[0] = score[1];
-				maxEdges[1] = score[2];
-			}
-		}
-		if(rs.get(j).contains(rs.get(i)))
+		ArrayList<Double> curEdges = new ArrayList<Double>();
+		if(rs.get(j).contains(rs.get(i), curEdges))
 		{
 			contained[i] = true;
-			if(!foundContained || score[0] > maxContainment)
+			if(!foundContained || curEdges.get(0) > maxContainment)
 			{
 				foundContained = true;
 				bestIdx = j;
-				maxContainment = score[0];
-				maxEdges[0] = score[1];
-				maxEdges[1] = score[2];
+				maxContainment = curEdges.get(0);
+				maxEdges = curEdges;
 			}
-			//break;
+			if(!logging)
+			{
+				break;
+			}
+		}
+		else
+		{
+			if(!foundContained && curEdges.get(0) > maxContainment)
+			{
+				bestIdx = j;
+				maxContainment = curEdges.get(0);
+				maxEdges = curEdges;
+			}
 		}
 	}
 	
-	debugLines[i] = rs.get(i).name + " " + maxContainment + " " + maxEdges[0] + " " + maxEdges[1] + " " + rs.get(i).len;
+	debugLines[i] = rs.get(i).name + " " + rs.get(i).len;
+	for(double d : maxEdges)
+	{
+		debugLines[i] += " " + d;
+	}
 	if(bestIdx != -1)
 	{
 		debugLines[i] += " " + rs.get(bestIdx).name;
@@ -748,9 +771,17 @@ static class Read implements Comparable<Read>
 	}
 	
 	// Check if this read contains another read based on shared proportion of primary sketch
-	boolean contains(Read r)
+	boolean contains(Read r, ArrayList<Double> scores)
 	{
+		int returnVal = 0;
 		double[] containmentScores = this.containmentScore(r);
+		if(logging)
+		{
+			for(double d : containmentScores)
+			{
+				scores.add(d);
+			}
+		}
 		double[] thresholds = new double[] {CONTAINMENT_THRESHOLD, CONTAINMENT_THRESHOLD2, CONTAINMENT_THRESHOLD2};
 		if(method == FilterMethod.THRESHOLD)
 		{
@@ -758,7 +789,17 @@ static class Read implements Comparable<Read>
 			{
 				if(containmentScores[i] < thresholds[i] - 1e-9)
 				{
-					return false;
+					if(logging)
+					{
+						if(returnVal == 0)
+						{
+							returnVal = -1;
+						}
+					}
+					else
+					{
+						return false;
+					}
 				}
 			}
 			return true;
@@ -769,11 +810,31 @@ static class Read implements Comparable<Read>
 			{
 				if(containmentScores[i] < thresholds[i] - 1e-9 && r.len >= LENGTH_FILTER)
 				{
-					return false;
+					if(logging)
+					{
+						if(returnVal == 0)
+						{
+							returnVal = -1;
+						}
+					}
+					else
+					{
+						return false;
+					}
 				}
 				else if(containmentScores[i] < thresholds[i] * .5 - 1e-9)
 				{
-					return false;
+					if(logging)
+					{
+						if(returnVal == 0)
+						{
+							returnVal = -1;
+						}
+					}
+					else
+					{
+						return false;
+					}
 				}
 			}
 			return true;
@@ -782,38 +843,111 @@ static class Read implements Comparable<Read>
 		{
 			if(r.len < LENGTH_FILTER)
 			{
-				return true;
+				if(logging)
+				{
+					if(returnVal == 0)
+					{
+						returnVal = 1;
+					}
+				}
+				else
+				{
+					return true;
+				}
 			}
 			boolean lessThanDouble = true;
 			for(int i = 0; i<3; i++)
 			{
 				if(containmentScores[i] < thresholds[i] - 1e-9)
 				{
-					return false;
+					if(logging)
+					{
+						if(returnVal == 0)
+						{
+							returnVal = -1;
+						}
+					}
+					else
+					{
+						return false;
+					}
 				}
 				else
 				{
 					lessThanDouble &= containmentScores[i] < 2 * thresholds[i] - 1e-9;
 				}
 			}
-			if(lessThanDouble)
+			if(lessThanDouble || logging)
 			{
 				// Check for off-by-one in ends
 				for(int i = 1; i<3; i++)
 				{
 					long[] kmers = i == 1 ? r.starts2 : r.ends2;
 					double cur = compareErrorKmers(kmers, ms, K1);
-					if(cur < thresholds[i] * 2 - 1e-9)
+					if(logging)
 					{
-						return false;
+						scores.add(cur);
+					}
+					if(cur < ERROR_THRESHOLD - 1e-9)
+					{
+						if(logging)
+						{
+							if(returnVal == 0)
+							{
+								returnVal = -1;
+							}
+						}
+						else
+						{
+							return false;
+						}
 					}
 				}
-				return true;
+				if(logging)
+				{
+					if(returnVal == 0)
+					{
+						returnVal = 1;
+					}
+				}
+				else
+				{
+					return true;
+				}
 			}
 			else
 			{
-				return true;
+				if(logging)
+				{
+					if(returnVal == 0)
+					{
+						returnVal = 1;
+					}
+				}
+				else
+				{
+					return true;
+				}
 			}
+		}
+		else
+		{
+			if(logging)
+			{
+				if(returnVal == 0)
+				{
+					returnVal = -1;
+				}
+			}
+			else
+			{
+				return false;
+			}
+		}
+		
+		if(returnVal > 0)
+		{
+			return true;
 		}
 		else
 		{
