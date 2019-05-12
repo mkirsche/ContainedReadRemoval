@@ -18,3 +18,5 @@ runs/
 data/*
 debug/*
 docs/*
+sim/sim*.txt
+sim/*.fa

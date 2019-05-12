@@ -476,6 +476,13 @@ static void process(int i) throws Exception
 	}
 	
 	debugLines[i] = rs.get(i).name + " " + rs.get(i).len;
+	if(maxEdges.size() == 0)
+	{
+		for(int idx = 0; idx < 5; idx++)
+		{
+			maxEdges.add(0.0);
+		}
+	}
 	for(double d : maxEdges)
 	{
 		debugLines[i] += " " + d;
@@ -958,6 +965,7 @@ static class Read implements Comparable<Read>
 	static double compareErrorKmers(long[] error, long[] database, int k)
 	{
 		ArrayList<IndexedKmer> errored = new ArrayList<IndexedKmer>();
+		HashSet<Long> usedKmers = new HashSet<Long>();
 		for(int index = 0; index < error.length; index+=2)
 		{
 			long e = error[index];
@@ -973,7 +981,13 @@ static class Read implements Comparable<Read>
 					{
 						continue;
 					}
-					errored.add(new IndexedKmer(newHash+add-sub, count, index/2));
+					newHash = newHash + add - sub;
+					if(usedKmers.contains(newHash))
+					{
+						continue;
+					}
+					usedKmers.add(newHash);
+					errored.add(new IndexedKmer(newHash, count, index/2));
 				}
 			}
 		}

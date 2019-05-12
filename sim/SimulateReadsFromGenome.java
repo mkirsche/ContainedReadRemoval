@@ -72,6 +72,118 @@ public static void main(String[] args)  throws IOException
 	scoreOut.close();
 	readOut.close();
 	intervalOut.close();
+	
+	PrintWriter sortedOut = new PrintWriter(new File("sorted.txt"));
+	Collections.sort(coords, new Comparator<Pair>() {
+
+		@Override
+		public int compare(Pair a, Pair b) {
+			long alength = a.b - a.a;
+			long blength = b.b - b.a;
+			return Long.compare(blength, alength);
+		}
+	});
+	
+	int test = 100000;
+	boolean[] done = new boolean[coords.size()];
+	int[] counts = new int[Math.min(coords.size(), test)];
+	long[] cumulength = new long[counts.length];
+	int[] tots = new int[counts.length];
+	int tot = 0;
+	IntervalUnion iu = new IntervalUnion();
+	for(int i = 0; i<test && i < coords.size(); i++)
+	{
+		int count = 0;
+		for(int j = i+1; j<coords.size(); j++)
+		{
+			if(coords.get(j).a >= coords.get(i).a && coords.get(j).b <= coords.get(i).b)
+			{
+				count++;
+				if(!done[j])
+				{
+					tot++;
+				}
+				done[j] = true;
+			}
+		}
+		iu.add(coords.get(i).a, coords.get(i).b);
+		counts[i] = count;
+		tots[i] = tot;
+		cumulength[i] = iu.length;
+	}
+	for(int i = 0; i<coords.size(); i++) iu.add(coords.get(i).a, coords.get(i).b);
+	System.out.println(iu.length);
+	for(int i = 0; i<test && i < coords.size(); i++)
+	{
+		sortedOut.println(getName(coords.get(i).i)+" "+coords.get(i).a+" "+coords.get(i).b+" "+counts[i]+" "+tots[i]+" "+cumulength[i]);
+	}
+	sortedOut.close();
+}
+static class IntervalUnion
+{
+	TreeSet<Interval> set;
+	long length;
+	
+	IntervalUnion()
+	{
+		set = new TreeSet<>();
+		length = 0;
+	}
+	
+	class Interval implements Comparable<Interval>
+	{
+		long a, b;
+		Interval(long aa, long bb)
+		{
+			a = aa; b = bb;
+		}
+		@Override
+		public int compareTo(Interval o) {
+			// TODO Auto-generated method stub
+			if(a != o.a) return (int) (a - o.a);
+			return (int) (b - o.b);
+		}
+	}
+	
+	void add(long a, long b)
+	{
+		long removedLength = 0;
+		Interval toAdd = new Interval(a, b);
+		Interval floor = set.floor(toAdd);
+		while(floor != null)
+		{
+			if(floor.b >= toAdd.a)
+			{
+				toAdd.a = Math.min(toAdd.a, floor.a);
+				toAdd.b = Math.max(toAdd.b, floor.b);
+				removedLength += floor.b - floor.a + 1;
+				set.remove(floor);
+				floor = set.floor(toAdd);
+			}
+			else
+			{
+				break;
+			}
+		}
+		Interval ceiling = set.ceiling(toAdd);
+		while(ceiling != null)
+		{
+			if(ceiling.a <= toAdd.b)
+			{
+				toAdd.b = Math.max(toAdd.b, ceiling.b);
+				toAdd.a = Math.min(toAdd.a, ceiling.a);
+				removedLength += ceiling.b - ceiling.a + 1;
+				set.remove(ceiling);
+				ceiling = set.ceiling(toAdd);
+			}
+			else
+			{
+				break;
+			}
+		}
+		length += toAdd.b - toAdd.a + 1 - removedLength;
+		set.add(toAdd);
+	}
 }
 static String meanKey = "mean";
 static String stdevKey = "stdev";
