@@ -20,3 +20,5 @@ debug/*
 docs/*
 sim/sim*.txt
 sim/*.fa
+sim/sorted.txt
+sim/*.out
