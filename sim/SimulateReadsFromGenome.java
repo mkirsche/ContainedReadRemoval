@@ -26,7 +26,7 @@ public class SimulateReadsFromGenome {
 	static String intervalOfn;
 public static void main(String[] args)  throws IOException
 {
-	genomeFn = "/home/mkirsche/2018_08_Crossdel/genome.fa";
+	genomeFn = "/home/mkirsche/references/genome.fa";
 	readOfn = "simulatedreads.fa";
 	scoreOfn = "simulatedscores.txt";
 	outRefFn = "simulatedgenome.txt";
@@ -323,7 +323,7 @@ static void printContainmentScores(ArrayList<Pair> coords, PrintWriter out)
 	Collections.sort(coords);
 	int n = coords.size();
 	
-	int radius = 100;
+	int radius = n;
 	
 	for(int i = 0; i<n; i++)
 	{
